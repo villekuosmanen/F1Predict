@@ -1,0 +1,47 @@
+<style>
+    .barChart {
+        fill: steelblue;
+        overflow: hidden;
+    }
+    .axis text {
+        font: 10px sans-serif;
+    }
+    .axis path, .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+    .x.axis path {
+        display: none;
+    }
+    .d3-tip {
+        line-height: 1;
+        padding: 6px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+ 
+    /* Creates a small triangle extender for the tooltip */
+    .d3-tip:after {
+        box-sizing: border-box;
+        display: inline;
+        font-size: 12px;
+        width: 100%;
+        line-height: 1;
+        color: rgba(0, 0, 0, 0.8);
+        position: absolute;
+        content: "\25C0";
+        margin: -5px 0 0 0;
+        top: 50%;
+        left: -8px;
+    }
+    /* Style northward tooltips specifically */
+    .d3-tip e:after {
+        
+        top: 0;
+        left: 10px;
+    }
+</style>
+<svg class="barChart"></svg>

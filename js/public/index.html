@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html ng-app="f1PredictApp">
+    <head>
+        <meta charset="utf-8">
+        <title>F1 Prediction</title>
+        <meta name="author" content="Ville Kuosmanen">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="https://d3js.org/d3-request.v1.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script><!-- load angular -->
+        <script src="app.module.js"></script>
+        <script src="driver-list/driver-list.module.js"></script>
+        <script src="driver-list/driver-list.component.js"></script>
+        <script src="bar-chart/bar-chart.module.js"></script>
+        <script src="bar-chart/bar-chart.component.js"></script>
+        <script src="d3-tip.js"></script>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <header>
+        <h1>Spanish GP - Qualifying predictions</h1>
+    </header>
+    <body id="background">
+        <div id="rootBody">
+            <driver-list></driver-list>
+            <div style="float: left;">
+                <div id="selectedDriver">Choose a driver:</div>
+                <bar-chart></bar-chart>
+            </div>
+        </div>        
+    </body>
+</html>

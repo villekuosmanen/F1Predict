@@ -1,0 +1,19 @@
+#rootBody {
+    overflow: hidden;
+    background-color: #777777;
+}
+#background {
+    padding: 0px 80px 20px;
+    background-color: #333333;
+}
+
+#selectedDriver {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 10px 50px 0;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}
+
+header {
+    color: #dddddd;
+}

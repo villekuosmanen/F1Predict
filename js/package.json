@@ -1,0 +1,10 @@
+{
+  "name"         : "f1-predict",
+  "version"      : "0.0.0",
+  "description"  : "An app that predicts f1 results.",
+  "main"         : "server.js",
+  "author"       : "Ville Kuosmanen",
+  "dependencies" : {
+    "express"    : "~4.7.2"
+  }
+}
