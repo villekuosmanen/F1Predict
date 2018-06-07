@@ -88,7 +88,9 @@ function changeData(driver) {
         .data(newData)
         .attr("fill", driver.color)
         .attr("x", function (d) { 0; })     //HACK!
-        .attr("y", function (d, i) { return y(i); })
+        .attr("y", function (d, i) { return y(i); }) 
+        .transition()   //Transitions
+        .duration(800)  //time in ms
         .attr("width", function (d) {
             console.log(d);
             return x(d);
