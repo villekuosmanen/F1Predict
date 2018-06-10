@@ -2,6 +2,7 @@ import json
 import random
 import pandas as pd
 import numpy as np
+import math
 
 from .f1Data import Season
 from .f1Data import RaceData
@@ -10,21 +11,20 @@ from .f1Models import Constructor
 from .f1Models import Driver
 
 k_engine_change = 0.35
-k_const_change = 0.34
-k_driver_change = 0.40
+k_const_change = 0.33
+k_driver_change = 0.189
+k_track_impact = 0.20
+k_eng_impact = 0.38
+k_const_impact = 1.0
 
-k_track_impact = 0.10        #ZERO!
-k_eng_impact = 0.40
-k_const_impact = 1.15
-
-k_variance = 0.08    #At the moment, best is 0 (= no randomness)!
-k_rookie_pwr = 0.96
+k_variance = 0.07    #At the moment, best is 0 (= no randomness)!
+k_rookie_pwr = 0.75
 k_rookie_variance = 5
 k_race_regress_exp = 0.87
 k_variance_multiplier_end = 1.5
 
 k_eng_regress = 0.9
-k_const_regress = 1
+k_const_regress = 1 #Bugged, can't change for now
 k_driver_regress = 0.74
 
 #runNo is never used. It is required for paraller processing to work properly
@@ -202,12 +202,12 @@ def updateModels(qresults, scores, constructors, data, drivers):
                 engineExpt = (const.engine.pwr + k_track_impact*const.engine.trackpwr[data.circuitId]) / (1 + k_track_impact)
                 actual = np.mean(cs)
                 if data.circuitId not in const.trackpwr:
-                    constExpt = (const.pwr + k_eng_impact*engineExpt) / (1+k_eng_impact)
+                    constExpt = (const.pwr + k_eng_impact*engineExpt) / (1)
                     #Set track power to be result minus engine effect
                     const.trackpwr[data.circuitId] = 0
                 else:
                     constExpt = (const.pwr + k_track_impact*const.trackpwr[data.circuitId] + k_eng_impact*engineExpt
-                                ) / (1 + k_track_impact + k_eng_impact) 
+                                ) / (1 + k_track_impact) 
                 const.trackpwr[data.circuitId] += k_const_change * (actual - constExpt)*2 #Set track power normally
                 const.pwr += k_const_change*(actual - constExpt)
             
@@ -215,18 +215,19 @@ def updateModels(qresults, scores, constructors, data, drivers):
             for i, qres in enumerate(qresults):
                 constExpt = (drivers[qres[0]].constructor.pwr + k_track_impact*drivers[qres[0]].constructor.trackpwr[data.circuitId]
                                 + k_eng_impact*(drivers[qres[0]].constructor.engine.pwr + 
-                                k_track_impact*const.engine.trackpwr[data.circuitId])) / (1 + k_track_impact + k_eng_impact)
+                                k_track_impact*const.engine.trackpwr[data.circuitId])) / (1 + k_track_impact)
                 actual = scores[i]
                 if data.circuitId not in drivers[qres[0]].trackpwr:
-                    expected = (drivers[qres[0]].pwr + k_const_impact*constExpt) / (1+k_const_impact)
+                    expected = (drivers[qres[0]].pwr + k_const_impact*constExpt) / (1)
                     #Set track power to be result minus constructor effect
                     drivers[qres[0]].trackpwr[data.circuitId] = 0
                 else:
                     expected = (drivers[qres[0]].pwr + k_track_impact*drivers[qres[0]].trackpwr[data.circuitId] 
-                                + k_const_impact*constExpt) / (1 + k_track_impact + k_const_impact)
+                                + k_const_impact*constExpt) / (1 + k_track_impact)
+                #print(drivers[qres[0]].name + " (expected): " + str(expected))
                 drivers[qres[0]].trackpwr[data.circuitId] += k_driver_change*(actual - expected)*2
-                #print(drivers[qres[0]].pwr)
-                drivers[qres[0]].pwr += k_driver_change*(actual - expected)
+                #print(drivers[qres[0]].name + ": " + str(drivers[qres[0]].pwr))
+                drivers[qres[0]].pwr += k_driver_change*(actual - expected)* (drivers[qres[0]].variance)**0.45
                 drivers[qres[0]].variance **= k_race_regress_exp
 
 #Predicts the results for a quali in a given circuit for the given participants using the given data.
@@ -244,44 +245,43 @@ def predictQualiResults(circuitId, participants, drivers, constructors, engines)
             #Rookie, not added to drivers yet!
             drivers[did] = Driver("_NO_NAME_", constructors[cid])
         rand = (random.weibullvariate(1.95, 1.55) - 1) * k_variance * drivers[did].variance
-        #rand = (random.betavariate(5, 7.5) - 0.4) * k_variance
         mistakeOdds = random.random()
-        if mistakeOdds < 0.012*drivers[did].variance:
+        if mistakeOdds < 0.007*math.sqrt(drivers[did].variance):
             rand += 4
         if circuitId not in drivers[did].trackpwr:
             if circuitId not in drivers[did].constructor.trackpwr:
                 if circuitId not in drivers[did].constructor.engine.trackpwr:
                     score = (drivers[did].pwr + k_const_impact*((drivers[did].constructor.pwr) + k_eng_impact*(
-                            drivers[did].constructor.engine.pwr))) / (1 + k_const_impact) + rand
+                            drivers[did].constructor.engine.pwr))) / (1) + rand
                 else:
                     score = (drivers[did].pwr + k_const_impact*(drivers[did].constructor.pwr + k_eng_impact*(
                             drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr
-                            [circuitId]))) / (1 + k_const_impact) + rand
+                            [circuitId]))) / (1 + k_track_impact) + rand
             else:
                 score = (drivers[did].pwr + k_const_impact*(drivers[did].constructor.pwr + k_track_impact*
                         drivers[did].constructor.trackpwr[circuitId] + k_eng_impact*drivers[did].constructor.engine.pwr)
-                        ) / (1 + k_const_impact) + rand
+                        ) / (1 + k_track_impact) + rand
         elif (circuitId not in drivers[did].constructor.trackpwr):
             if circuitId not in drivers[did].constructor.engine.trackpwr:
                 score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*(
                         (drivers[did].constructor.pwr) + k_eng_impact*(drivers[did].constructor.engine.pwr)
-                        )) / (1 + k_track_impact + k_const_impact) + rand
+                        )) / (1 + k_track_impact) + rand
             else:
                 score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*(
                         (drivers[did].constructor.pwr) + k_eng_impact*(
                         drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr[circuitId]))
-                        ) / (1 + k_track_impact + k_const_impact) + rand
+                        ) / (1 + k_track_impact) + rand
         else:
             if circuitId not in drivers[did].constructor.engine.trackpwr:
                 score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*((drivers[did].constructor.pwr 
                         + k_track_impact*drivers[did].constructor.trackpwr[circuitId]) + k_eng_impact*(
-                        drivers[did].constructor.engine.pwr))) / (1 + k_track_impact + k_const_impact) + rand
+                        drivers[did].constructor.engine.pwr))) / (1 + k_track_impact) + rand
             else:
                 score = (drivers[did].pwr + 
                         k_track_impact*drivers[did].trackpwr[circuitId] +  
                         k_const_impact*((drivers[did].constructor.pwr + k_track_impact*drivers[did].constructor.trackpwr[circuitId]) + 
                             k_eng_impact*(drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr[circuitId]))
-                        ) / (1 + k_track_impact + k_const_impact) + rand
+                        ) / (1 + k_track_impact) + rand
         #print("Score: " + str(score) + ", Rand: " + str(rand))
         scores[did] = score
     #Sort scores:
