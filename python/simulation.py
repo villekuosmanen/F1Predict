@@ -3,6 +3,7 @@ import random
 import pandas as pd
 import numpy as np
 import math
+import copy
 
 from .f1Data import Season
 from .f1Data import RaceData
@@ -17,7 +18,8 @@ k_track_impact = 0.20
 k_eng_impact = 0.38
 k_const_impact = 1.0
 
-k_variance = 0.07    #At the moment, best is 0 (= no randomness)!
+k_variance = 0.06    #At the moment, best is 0 (= no randomness)!
+k_mistake_variance = 0.0015
 k_rookie_pwr = 0.75
 k_rookie_variance = 5
 k_race_regress_exp = 0.87
@@ -235,59 +237,102 @@ def updateModels(qresults, scores, constructors, data, drivers):
 #The participants have to be added to drivers etc. beforehand
 #Returns a sorted list of tuples of (driverId, score)
 def predictQualiResults(circuitId, participants, drivers, constructors, engines):
+    editableParticipants = copy.deepcopy(participants)
+    finalScores = []
+    scores = runQualifying(circuitId, constructors, drivers, editableParticipants)
+    #Sort scores:
+    scoreList = list(scores.items())
+    scoreList.sort(key=lambda x: x[1])
+    tempList = []
+    if len(scoreList) == 20:
+        tempList = scoreList[15:]
+    elif len(scoreList) == 22:
+        tempList = scoreList[16:]
+    elif len(scoreList) == 24:
+        tempList = scoreList[17:]
+    else:
+        return scoreList
+    for (did, score) in tempList:
+        del editableParticipants[int(did)]
+    finalScores = tempList + finalScores
+
+    #Q2
+    scores = runQualifying(circuitId, constructors, drivers, editableParticipants)
+    #Sort scores:
+    scoreList = list(scores.items())
+    scoreList.sort(key=lambda x: x[1])
+    tempList = scoreList[10:]
+    for (did, score) in tempList:
+        del editableParticipants[int(did)]
+    finalScores = tempList + finalScores
+
+    #Q3
+    scores = runQualifying(circuitId, constructors, drivers, editableParticipants)
+    #Sort scores:
+    scoreList = list(scores.items())
+    scoreList.sort(key=lambda x: x[1])
+    finalScores = scoreList + finalScores
+
+    return finalScores
+
+def runQualifying(circuitId, constructors, drivers, participants):
     scores = {}
     for driver, const in participants.items():
         did = int(driver)
         score = None
-        #cid only used if driver is new...
+        # cid only used if driver is new...
         if did not in drivers:
             cid = int(const)
-            #Rookie, not added to drivers yet!
+            # Rookie, not added to drivers yet!
             drivers[did] = Driver("_NO_NAME_", constructors[cid])
         rand = (random.weibullvariate(1.95, 1.55) - 1) * k_variance * drivers[did].variance
         mistakeOdds = random.random()
-        if mistakeOdds < 0.007*math.sqrt(drivers[did].variance):
+        if mistakeOdds < k_mistake_variance * math.sqrt(drivers[did].variance):
             rand += 4
         if circuitId not in drivers[did].trackpwr:
             if circuitId not in drivers[did].constructor.trackpwr:
                 if circuitId not in drivers[did].constructor.engine.trackpwr:
-                    score = (drivers[did].pwr + k_const_impact*((drivers[did].constructor.pwr) + k_eng_impact*(
-                            drivers[did].constructor.engine.pwr))) / (1) + rand
+                    score = (drivers[did].pwr + k_const_impact * ((drivers[did].constructor.pwr) + k_eng_impact * (
+                        drivers[did].constructor.engine.pwr))) / (1) + rand
                 else:
-                    score = (drivers[did].pwr + k_const_impact*(drivers[did].constructor.pwr + k_eng_impact*(
-                            drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr
-                            [circuitId]))) / (1 + k_track_impact) + rand
+                    score = (drivers[did].pwr + k_const_impact * (drivers[did].constructor.pwr + k_eng_impact * (
+                        drivers[did].constructor.engine.pwr + k_track_impact * drivers[did].constructor.engine.trackpwr
+                        [circuitId]))) / (1 + k_track_impact) + rand
             else:
-                score = (drivers[did].pwr + k_const_impact*(drivers[did].constructor.pwr + k_track_impact*
-                        drivers[did].constructor.trackpwr[circuitId] + k_eng_impact*drivers[did].constructor.engine.pwr)
-                        ) / (1 + k_track_impact) + rand
+                score = (drivers[did].pwr + k_const_impact * (drivers[did].constructor.pwr + k_track_impact *
+                                                              drivers[did].constructor.trackpwr[
+                                                                  circuitId] + k_eng_impact * drivers[
+                                                                  did].constructor.engine.pwr)
+                         ) / (1 + k_track_impact) + rand
         elif (circuitId not in drivers[did].constructor.trackpwr):
             if circuitId not in drivers[did].constructor.engine.trackpwr:
-                score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*(
-                        (drivers[did].constructor.pwr) + k_eng_impact*(drivers[did].constructor.engine.pwr)
-                        )) / (1 + k_track_impact) + rand
+                score = (drivers[did].pwr + k_track_impact * drivers[did].trackpwr[circuitId] + k_const_impact * (
+                    (drivers[did].constructor.pwr) + k_eng_impact * (drivers[did].constructor.engine.pwr)
+                )) / (1 + k_track_impact) + rand
             else:
-                score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*(
-                        (drivers[did].constructor.pwr) + k_eng_impact*(
-                        drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr[circuitId]))
-                        ) / (1 + k_track_impact) + rand
+                score = (drivers[did].pwr + k_track_impact * drivers[did].trackpwr[circuitId] + k_const_impact * (
+                    (drivers[did].constructor.pwr) + k_eng_impact * (
+                        drivers[did].constructor.engine.pwr + k_track_impact * drivers[did].constructor.engine.trackpwr[
+                            circuitId]))
+                         ) / (1 + k_track_impact) + rand
         else:
             if circuitId not in drivers[did].constructor.engine.trackpwr:
-                score = (drivers[did].pwr + k_track_impact*drivers[did].trackpwr[circuitId] + k_const_impact*((drivers[did].constructor.pwr 
-                        + k_track_impact*drivers[did].constructor.trackpwr[circuitId]) + k_eng_impact*(
-                        drivers[did].constructor.engine.pwr))) / (1 + k_track_impact) + rand
+                score = (drivers[did].pwr + k_track_impact * drivers[did].trackpwr[circuitId] + k_const_impact * (
+                (drivers[did].constructor.pwr
+                 + k_track_impact * drivers[did].constructor.trackpwr[circuitId]) + k_eng_impact * (
+                    drivers[did].constructor.engine.pwr))) / (1 + k_track_impact) + rand
             else:
-                score = (drivers[did].pwr + 
-                        k_track_impact*drivers[did].trackpwr[circuitId] +  
-                        k_const_impact*((drivers[did].constructor.pwr + k_track_impact*drivers[did].constructor.trackpwr[circuitId]) + 
-                            k_eng_impact*(drivers[did].constructor.engine.pwr + k_track_impact*drivers[did].constructor.engine.trackpwr[circuitId]))
-                        ) / (1 + k_track_impact) + rand
-        #print("Score: " + str(score) + ", Rand: " + str(rand))
+                score = (drivers[did].pwr +
+                         k_track_impact * drivers[did].trackpwr[circuitId] +
+                         k_const_impact * ((drivers[did].constructor.pwr + k_track_impact *
+                                            drivers[did].constructor.trackpwr[circuitId]) +
+                                           k_eng_impact * (drivers[did].constructor.engine.pwr + k_track_impact *
+                                                           drivers[did].constructor.engine.trackpwr[circuitId]))
+                         ) / (1 + k_track_impact) + rand
+        # print("Score: " + str(score) + ", Rand: " + str(rand))
         scores[did] = score
-    #Sort scores:
-    scoreList = list(scores.items())
-    scoreList.sort(key=lambda x: x[1])
-    return scoreList
+    return scores
+
 
 #Predicted, Actual: [driver]
 def gradePrediction(predicted, actual, length):
