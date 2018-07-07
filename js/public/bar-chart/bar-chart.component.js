@@ -11,12 +11,12 @@ function setUpChart() {
     var data = new Array(20).fill(0);
 
     var margin = { top: 10, right: 20, bottom: 40, left: 30 };
-    var width = 500 - margin.left - margin.right;
+    var width = 800 - margin.left - margin.right;
     var barHeight = 26;
     var height = (barHeight + 3.6) * data.length;
 
     var x = d3.scaleLinear()
-        .domain([0, 60])        //60 the hard-coded max
+        .domain([0, 100])        // 100%
         .range([0, width]);
     var y = d3.scaleLinear()
         .domain([0, 20])
@@ -78,7 +78,7 @@ function changeData(driver) {
         .domain([0, 20])
         .range([0, height]);
 
-    console.log("changeData called");
+    //console.log("changeData called");
     for (var pos in driver.predictions) {
         newData[parseInt(pos)] = driver.predictions[pos] / 10.0;
     }
@@ -92,7 +92,7 @@ function changeData(driver) {
         .transition()   //Transitions
         .duration(800)  //time in ms
         .attr("width", function (d) {
-            console.log(d);
+            //console.log(d);
             return x(d);
         });
 }

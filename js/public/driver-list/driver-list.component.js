@@ -12,7 +12,7 @@ angular
                 }
 
                 $http.get('predictions.json').then(function (driverRes) {
-                    console.log(driversDict);
+                    //console.log(driversDict);
                     for (did in driverRes.data) {
                         driversDict[did].predictions = driverRes.data[did];
                     }
@@ -37,7 +37,7 @@ angular
                 d3.select("#selectedDriver")
                     .text(driver.name)
                     .style("color", driver.color);
-                console.log(driver);
+                //console.log(driver);
                 changeData(driver);
             }
         }
@@ -75,7 +75,7 @@ function getColor(driver) {
         driver.color = "#9b0000";
     }
     else {
-        console.log(driver.constructor);
+        //console.log(driver.constructor);
         throw Error();
     }
 }

@@ -89,7 +89,7 @@ def runSimReturnDrivConstEng(seasonsData, qualiResultsData, driversData, constru
         racesAsList.sort(key=lambda x: x[1].round)
         for raceId, data in racesAsList:
             #A single race
-            if raceId < 992:
+            if raceId in qualiResultsData:
                 circuit = data.circuitId
                 qresults = qualiResultsData[raceId]
                 addDriversToModel(qresults, drivers, constructors, driversData, year)
