@@ -17,6 +17,9 @@
           <option value="pandas" />
           <option value="random" />
           <option value="json" />
+          <option value="dataclean.float" />
+          <option value="dataclean.*" />
+          <option value="pymysql" />
         </list>
       </option>
     </inspection_tool>
