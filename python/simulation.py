@@ -25,10 +25,6 @@ k_rookie_variance = 5
 k_race_regress_exp = 0.87
 k_variance_multiplier_end = 1.5
 
-k_eng_regress = 0.9
-k_const_regress = 1 #Bugged, can't change for now
-k_driver_regress = 0.74
-
 #runNo is never used. It is required for paraller processing to work properly
 def runSimulation(runNo, seasonsData, qualiResultsData, driversData, constructorsData, enginesData):
     #Deviation variables
