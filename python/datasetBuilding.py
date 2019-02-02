@@ -29,56 +29,68 @@ k_rookie_variance = 5
 k_race_regress_exp = 0.87
 k_variance_multiplier_end = 1.5
 
-def constructDataset(entries, results, seasonsData, qualiResultsData, driversData, constructorsData, enginesData):
-    #Deviation variables
-    globaldev = [None] * 20
-    trackdev = {}
+class F1DataCleaner:
+    '''Generates a dataset from statistical data'''
+    def __init__(self, seasonsData, qualiResultsData, driversData, constructorsData, enginesData):
+        self.seasonsData = seasonsData
+        self.qualiResultsData = qualiResultsData
+        self.driversData = driversData
+        self.constructorsData = constructorsData
+        self.enginesData = enginesData
 
-    drivers = {} #DriverId, Driver
-    constructors = {} #ConstructorId, Constructor
-    engines = {} #EngineId, Engine
+        #Define data structures that will be filled
+        self.drivers = {} #DriverId, Driver
+        self.constructors = {} #ConstructorId, Constructor
+        self.engines = {} #EngineId, Engine
+    
+    def constructDataset(self, entries, results):
+        self.drivers = {}
+        self.constructors = {}
+        self.engines = {}
 
-    for year, season in seasonsData.items():    #Read every season:
-        updateModelsForYear(season, constructors, engines, enginesData, constructorsData)
-        racesAsList = list(season.races.items())
-        racesAsList.sort(key=lambda x: x[1].round)
-        for raceId, data in racesAsList:
-            #A single race
-            if raceId < 992:    #WTF?
+        #Deviation variables
+        globaldev = [None] * 20
+        trackdev = {}
+        for year, season in self.seasonsData.items():    #Read every season:
+            updateModelsForYear(season, self.constructors, self.engines, self.enginesData, self.constructorsData)
+            racesAsList = list(season.races.items())
+            racesAsList.sort(key=lambda x: x[1].round)
+            for raceId, data in racesAsList:
+                #A single race
                 circuit = data.circuitId
-                qresults = qualiResultsData[raceId]
-                addDriversToModel(qresults, drivers, constructors, driversData, year)
+                if raceId in self.qualiResultsData:
+                    qresults = self.qualiResultsData[raceId]
+                    addDriversToModel(qresults, self.drivers, self.constructors, self.driversData, year)
 
-                #TODO Why do we do this?
-                qresults.sort(key=lambda x: x[2])   #Scores and qresults need to be in same order!
-                scores = calculateScoresFromResults(qresults, drivers, constructors, data, globaldev, trackdev)
+                    #TODO Why do we do this?
+                    qresults.sort(key=lambda x: x[2])   #Scores and qresults need to be in same order!
+                    scores = calculateScoresFromResults(qresults, self.drivers, self.constructors, data, globaldev, trackdev)
 
-                #Add to entries and results
-                if year > 2005: #Don't use the oldest data
-                    for index, (driverId, constId, time) in enumerate(qresults):
-                        if circuit not in drivers[driverId].trackpwr:
-                            drivers[driverId].trackpwr[circuit] = 0 #TODO maybe change defaults
-                        if circuit not in drivers[driverId].constructor.trackpwr:
-                            drivers[driverId].constructor.trackpwr[circuit] = 0 #TODO maybe change defaults
-                        if circuit not in drivers[driverId].constructor.engine.trackpwr:
-                            drivers[driverId].constructor.engine.trackpwr[circuit] = 0 #TODO maybe change defaults
+                    #Add to entries and results
+                    if year > 2005: #Don't use the oldest data
+                        for index, (driverId, constId, time) in enumerate(qresults):
+                            if circuit not in self.drivers[driverId].trackpwr:
+                                self.drivers[driverId].trackpwr[circuit] = 0 #TODO maybe change defaults
+                            if circuit not in self.drivers[driverId].constructor.trackpwr:
+                                self.drivers[driverId].constructor.trackpwr[circuit] = 0 #TODO maybe change defaults
+                            if circuit not in self.drivers[driverId].constructor.engine.trackpwr:
+                                self.drivers[driverId].constructor.engine.trackpwr[circuit] = 0 #TODO maybe change defaults
 
-
-                        entry = [
-                            drivers[driverId].pwr, 
-                            drivers[driverId].constructor.pwr, 
-                            drivers[driverId].constructor.engine.pwr,
-                            drivers[driverId].trackpwr[circuit],
-                            drivers[driverId].constructor.trackpwr[circuit],
-                            drivers[driverId].constructor.engine.trackpwr[circuit]
+                            entry = [
+                                self.drivers[driverId].pwr, 
+                                self.drivers[driverId].constructor.pwr, 
+                                self.drivers[driverId].constructor.engine.pwr,
+                                self.drivers[driverId].trackpwr[circuit],
+                                self.drivers[driverId].constructor.trackpwr[circuit],
+                                self.drivers[driverId].constructor.engine.trackpwr[circuit]
                             ]
-                        result = scores[index]
-                        entries.append(entry)
-                        results.append(result)
+                            result = scores[index]
+                            entries.append(entry)
+                            results.append(result)
+                    updateModels(qresults, scores, self.constructors, data, self.drivers)
 
 
-                updateModels(qresults, scores, constructors, data, drivers)
-
+#Utility functions---------------
 
 #Functions for calculating deviation of qualifying times:
 def addTrackToTrackDev(trackdev, circuitId):
