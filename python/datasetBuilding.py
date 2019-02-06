@@ -30,7 +30,7 @@ k_race_regress_exp = 0.87
 k_variance_multiplier_end = 1.5
 
 k_eng_regress = 0.9
-k_const_regress = 1
+k_const_regress = 0.9
 k_driver_regress = 0.74
 
 
