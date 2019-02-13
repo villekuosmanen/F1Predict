@@ -45,22 +45,35 @@ def slowerTime(previous, current):
     else:
         return previous
 
-def addSeason(cursor, seasonsData, qualiResultsData, year):
+def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
     """Adds a Season Data object to the given map of seasons"""
     s = Season()
+    q3no = 0
+    q2no = 0
     
     sql = "SELECT `raceId`, `round`, `circuitId`, `name` FROM `races` WHERE `year`=%s"
     cursor.execute(sql, year)
     result = cursor.fetchall()
     
     for x in result:
-        raceData = RaceData(x.get('circuitId'), x.get('round'))
+        circuitId = x.get('circuitId')
+        roundNo = x.get('round')
+
+        #Inefficient to loop through every time, but doesn't matter here
+        for index, row in qualiChanges.iterrows():
+            if int(row["Year"]) == year and int(row["Race"]) == roundNo:
+                print("quali change")
+                q3no = row["Q3"]
+                q2no = row["Q2"]
+                break
+
+        raceData = RaceData(circuitId, roundNo)
         s.addRace(x.get('raceId'), raceData)
-        addQualiResults(cursor, qualiResultsData, x.get('raceId'))
+        addQualiResults(cursor, qualiResultsData, q3no, q2no, x.get('raceId'))
         
     seasonsData[year] = s
 
-def addQualiResults(cursor, qualiResultsData, raceId):
+def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
     """Adds quali results from a race. Each result has a separate object for each driver's performance"""
     qs = []
     
@@ -69,18 +82,27 @@ def addQualiResults(cursor, qualiResultsData, raceId):
     result = cursor.fetchall()
     if result:
         #The tuple is non-empty. Here we remove the trivial cases (races where there is no data).
-        result.sort(key=lambda result: result['position'])    
-        lastBestTime = None
-        for x in result:
+        result.sort(key=lambda result: result['position']) 
+        #lastBestTime = None
+        fastestTimeOfAll = None
+        for index, x in enumerate(result):
             #Use q1, q2 and q3 to identify best time
             q1 = x.get('q1')
             q2 = x.get('q2')
             q3 = x.get('q3')
             bestTime = compareQualiTimes(q1, q2, q3)
+            if (index < q3no and (q3 is None or not q3)) or (index < q2no and (q2 is None or not q2)):
+                #Driver didn't participate to a qualifying they got in. Can take several actions but now just ignore them
+                print("Race " + str(raceId) + ", place " + str(index + 1) + " failed to set a time")
+                continue
+
+            if (fastestTimeOfAll == None):
+                fastestTimeOfAll = bestTime
             if bestTime is not None:
                 #If is 'None', don't add to results at all!
-                lastBestTime = slowerTime(lastBestTime, bestTime)
-                qs.append( (x.get('driverId'), x.get('constructorId'), lastBestTime) ) #A tuple
+                #lastBestTime = slowerTime(lastBestTime, bestTime)
+                if bestTime < 1.08*fastestTimeOfAll:    #Using a 109% rule
+                    qs.append( (x.get('driverId'), x.get('constructorId'), bestTime) ) #A tuple
         qualiResultsData[raceId] = qs
 
 def getDriversData(cursor, driversData):
