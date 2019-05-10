@@ -31,8 +31,9 @@ class F1DataCleaner:
         self.k_engine_change = 0.35
         self.k_const_change = 0.33
         self.k_driver_change = 0.189
-        self.k_eng_impact = 0.38
-        self.k_const_impact = 1.0
+        self.k_const_impact = 0.5
+        self.k_eng_impact = (1 - self.k_const_impact)
+        self.k_driver_impact = 0.1
 
         self.k_rookie_pwr = 0.75
         self.k_rookie_variance = 5
@@ -68,7 +69,7 @@ class F1DataCleaner:
                         qresults, data.circuitId, globaldev, trackdev)
 
                     # Add to entries and results
-                    if year > 2005:  # Don't use the oldest data in the dataset
+                    if year > 2007:  # Don't use the oldest data in the dataset
                         for index, (driverId, constId, time) in enumerate(qresults):
                             self._addNewCircuitsToEntities(
                                 driverId, data.circuitId)
@@ -147,80 +148,90 @@ class F1DataCleaner:
         # enumerate through results to get list of scores by constructor & engine
         engineScores = {}  # engineId, [list of scores]
         constScores = {}  # constId, [list of scores]
-        self._fillEngineAndConstructorScores(
-            qresults, engineScores, constScores, scores)
+        driverScores = {}
 
-        # TODO ALGO
-        self._updateEngineScores(circuitId, engineScores)
-        self._updateConstructorScores(circuitId, constScores)
-        self._updateDriverScores(qresults, circuitId, scores)
-
-    def _fillEngineAndConstructorScores(self, qresults, engineScores, constScores, scores):
         for i, qres in enumerate(qresults):
+            engPower = self.constructors[qres[1]].engine.pwr
+            constPower = self.constructors[qres[1]].pwr
+            driverPower = self.drivers[qres[0]].pwr
+
             if self.constructors[qres[1]].engine not in engineScores:
                 # Add engine to scores
                 engineScores[self.constructors[qres[1]].engine] = []
-            engineScores[self.constructors[qres[1]].engine].append(scores[i])
+            engineScores[self.constructors[qres[1]].engine].append(
+                (1 / (1 - self.k_eng_impact)) * (scores[i] * (1 - self.k_eng_impact) - 
+                    self.k_const_impact * constPower
+                ) - self.k_driver_impact * driverPower
+            )
             if self.constructors[qres[1]] not in constScores:
                 # Add constructor to scores
                 constScores[self.constructors[qres[1]]] = []
-            constScores[self.constructors[qres[1]]].append(scores[i])
+            constScores[self.constructors[qres[1]]].append(
+                (1 / (1 - self.k_const_impact)) * (scores[i] * (1 - self.k_const_impact) -
+                    self.k_eng_impact * engPower
+                ) - self.k_driver_impact * driverPower
+            )
+            driverScores[self.drivers[qres[0]]] = (1 / (1 - self.k_driver_impact)) * (scores[i] - 
+                    self.k_eng_impact * engPower -
+                    self.k_const_impact * constPower
+                )
+
+        # TODO This only compares how much better an entity did in the track over their own
+        # past performance. Needs to take into account the other components of the participant
+        self._updateEngineScores(circuitId, engineScores)
+        self._updateConstructorScores(circuitId, constScores)
+        self._updateDriverScores(circuitId, driverScores)
 
     def _updateEngineScores(self, circuitId, engineScores):
         '''Update scores for Engine model objects.'''
         for engine, es in engineScores.items():
-            actual = np.mean(es)
+            actual=np.mean(es)
             if circuitId not in engine.trackpwr:
-                engine.trackpwr[circuitId] = 0
+                engine.trackpwr[circuitId]=0
 
-            engine.trackpwr[circuitId] = self.k_engine_change*(actual - engine.pwr) + (
+            engine.trackpwr[circuitId]=self.k_engine_change*(actual - engine.pwr) + (
                 1 - self.k_engine_change) * engine.trackpwr[circuitId]
-            engine.pwr = self.k_engine_change * \
+            engine.pwr=self.k_engine_change * \
                 (actual) + (1 - self.k_engine_change) * engine.pwr
 
     def _updateConstructorScores(self, circuitId, constScores):
         '''Update scores for Constructor model objects.'''
         for const, cs in constScores.items():
-            actual = np.mean(cs)
-            engineEffect = self.k_eng_impact*const.engine.pwr
+            actual=np.mean(cs)
             if circuitId not in const.trackpwr:
-                const.trackpwr[circuitId] = 0
+                const.trackpwr[circuitId]=0
 
-            const.trackpwr[circuitId] = self.k_const_change*(actual - const.pwr) + (
+            const.trackpwr[circuitId]=self.k_const_change*(actual - const.pwr) + (
                 1 - self.k_const_change) * const.trackpwr[circuitId]
-            const.pwr = self.k_const_change * \
-                (actual - engineEffect) + (1 - self.k_const_change) * const.pwr
+            const.pwr=self.k_const_change * \
+                (actual) + (1 - self.k_const_change) * const.pwr
 
-    def _updateDriverScores(self, qresults, circuitId, scores):
+    def _updateDriverScores(self, circuitId, driverScores):
         '''Update scores for Driver model objects.'''
-        for i, qres in enumerate(qresults):
-            driver = self.drivers[qres[0]]
-
-            actual = scores[i]
-            constEffect = self.k_const_impact * driver.constructor.pwr + \
-                self.k_eng_impact * driver.constructor.engine.pwr
+        for driver, ds in driverScores.items():
+            actual=ds
             if circuitId not in driver.trackpwr:
-                driver.trackpwr[circuitId] = 0
+                driver.trackpwr[circuitId]=0
 
-            driver.trackpwr[circuitId] = self.k_driver_change*(actual - driver.pwr) + (
+            driver.trackpwr[circuitId]=self.k_driver_change*(actual - driver.pwr) + (
                 1 - self.k_driver_change) * driver.trackpwr[circuitId]
-            driver.pwr = self.k_driver_change * \
-                (actual - constEffect) + (1 - self.k_driver_change) * driver.pwr
+            driver.pwr=self.k_driver_change * \
+                (actual) + (1 - self.k_driver_change) * driver.pwr
             driver.variance **= self.k_race_regress_exp
 
 
 def calculateScoresFromResults(qresults, circuitId, globaldev, trackdev):
     '''Return a list of standardised quali score values for the quali results.'''
     # Make sure all drivers have been added to the list and their info is correct
-    best = qresults[0][2]
+    best=qresults[0][2]
 
     # Only the times. Maintains the same order as the original tuples, so the same index can be used
-    times = [((x[2])*100/best) for x in qresults]
-    median = np.median(times)
-    dev = np.mean(np.abs(times - median))
+    times=[((x[2])*100/best) for x in qresults]
+    median=np.median(times)
+    dev=np.mean(np.abs(times - median))
 
     # Standardised list
-    stdList = [(x - median)/dev for x in times]
+    stdList=[(x - median)/dev for x in times]
     # print(stdList)
 
     updateDevValues(dev, circuitId, globaldev, trackdev)
@@ -234,6 +245,6 @@ def updateDevValues(dev, circuitId, globaldev, trackdev):
     globaldev.insert(0, dev)
 
     if circuitId not in trackdev:
-        trackdev[circuitId] = [None] * 6
+        trackdev[circuitId]=[None] * 6
     trackdev[circuitId].pop()
     trackdev[circuitId].insert(0, dev)
