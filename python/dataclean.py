@@ -4,6 +4,7 @@ from . import RaceData
 import pymysql
 import pymysql.cursors
 import pandas as pd
+import json
 
 def compareQualiTimes(q1, q2, q3):
     """Returns the best time of the three"""
@@ -50,6 +51,7 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
     s = Season()
     q3no = 0
     q2no = 0
+    futureRaces = None  # Used when a race has no data yet
     
     sql = "SELECT `raceId`, `round`, `circuitId`, `name` FROM `races` WHERE `year`=%s"
     cursor.execute(sql, year)
@@ -69,12 +71,27 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
 
         raceData = RaceData(circuitId, roundNo)
         s.addRace(x.get('raceId'), raceData)
-        addQualiResults(cursor, qualiResultsData, q3no, q2no, x.get('raceId'))
-        
+        res = addQualiResults(cursor, qualiResultsData, q3no, q2no, x.get('raceId'))
+        if not res:
+            # Fail: there were no quali results! Therefore add race to future races object
+            if futureRaces is None:
+                futureRaces = []
+            futureRaces.append({
+                "raceId": x.get('raceId'),
+                "name": x.get('name'),
+                "circuitId": x.get('circuitId'),
+                "year": year
+            })
+    if futureRaces is not None:
+        with open('data/futureRaces.json', 'w') as fp:
+            json.dump(futureRaces, fp)
+
     seasonsData[year] = s
 
 def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
-    """Adds quali results from a race. Each result has a separate object for each driver's performance"""
+    """Adds quali results from a race. Each result has a separate object for each driver's performance
+    
+        Returns true if quali results were found, and false otherwise"""
     qs = []
     
     sql = "SELECT `driverId`, `constructorId`, `q1`, `q2`, `q3`, `position` FROM `qualifying` WHERE `raceId`=%s"
@@ -104,6 +121,8 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
                 if bestTime < 1.08*fastestTimeOfAll:    #Using a 109% rule
                     qs.append( (x.get('driverId'), x.get('constructorId'), bestTime) ) #A tuple
         qualiResultsData[raceId] = qs
+        return True
+    return False
 
 def getDriversData(cursor, driversData):
     """Gathers the wanted data from all drivers"""
