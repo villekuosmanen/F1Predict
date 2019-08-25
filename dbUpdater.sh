@@ -12,9 +12,8 @@ wget http://ergast.com/downloads/f1db.sql.gz
 gunzip f1db.sql.gz
 
 #Run it to the database
+    #Replace username and password with your database credentials
 mysql -u f1user -pf1pw -D f1db < f1db.sql
 
 #Run the python script on it
 python3 dataclean-script.py
-
-
