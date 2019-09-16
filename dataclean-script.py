@@ -23,7 +23,7 @@ enginesData = {}
 
 #Set up a database connection:
 
-#I know, I know, this is fucking horrible data security buy who cares tbh
+#Replace the username and password with the credentials to your own database
 connection = pymysql.connect(host='localhost',
                              user='f1user',
                              password='f1pw',
