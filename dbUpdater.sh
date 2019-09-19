@@ -17,3 +17,4 @@ mysql -u f1user -pf1pw -D f1db < f1db.sql
 
 #Run the python script on it
 python3 dataclean-script.py
+python3 generate-predictions.py
