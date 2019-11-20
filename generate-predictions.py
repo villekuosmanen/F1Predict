@@ -90,6 +90,8 @@ driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
     driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
+    if not cid == "":
+        cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
     driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
     driversToWrite[int(did)]["color"] = getColor(cleaner.drivers[int(did)].constructor.name)
 outFile["drivers"] = driversToWrite
