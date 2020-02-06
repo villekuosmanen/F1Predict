@@ -9,7 +9,8 @@ from ipyparallel import Client
 from itertools import repeat
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import train_test_split
 
 
 def gradient(x, err):
@@ -71,18 +72,13 @@ while np.linalg.norm(grad) > stop:
     # Move in the direction of the gradient
     # N.B. this is point-wise multiplication, not a dot product
     cleaner.theta = cleaner.theta - grad*alpha
-    mse = squaredError(errors).mean()
-    print(mse)
+    mae = errors.mean()
+    print(mae)
     entries, errors, results = cleaner.constructDataset()
     grad = gradient(entries, errors)
 
-print("Gradient descent finished. MSE="+str(mse))
+print("Gradient descent finished. MAE="+str(mae))
 print(cleaner.theta)
-
-forest = RandomForestRegressor(random_state=0, n_estimators=100)
-forest.fit(entries, results)
-y_hat = forest.predict(entries)
-print('MSE: ' + str(mean_squared_error(results, y_hat)))
 
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 newDrivers = {int(did): cid for did, cid in newDrivers.items()}
@@ -143,14 +139,15 @@ for did, cid in newDrivers.items():
     ]
     predictedEntrants.append(entry)
 
-forestResults = forest.predict(np.array(predictedEntrants))
+linearRegResults = [np.dot(x, cleaner.theta) for x in predictedEntrants]
 
 driverResults = {} # {did: {position: amount}}
 orderedResults = [] # [(did, prediction) ...]
 for index, (did, cid) in enumerate(newDrivers.items()):
-    newDrivers[did] = forestResults[index]
+    newDrivers[did] = linearRegResults[index]
     driverResults[int(did)] = {}
-    orderedResults.append((did, forestResults[index]))
+    orderedResults.append((did, linearRegResults[index]))
+print(newDrivers)
     
 orderedResults.sort(key = operator.itemgetter(1))
 outFile["order"] = [a for (a, b) in orderedResults]
