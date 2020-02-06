@@ -9,6 +9,15 @@ from ipyparallel import Client
 from itertools import repeat
 
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+
+def gradient(x, err):
+    grad = -(1.0/len(x)) * err @ x
+    return grad
+
+def squaredError(err):
+    return err**2
 
 def getColor(constructor):
     return {
@@ -51,35 +60,29 @@ with open('data/constructorsData.txt', 'rb') as handle:
 with open('data/enginesData.txt', 'rb') as handle:
     enginesData = pickle.load(handle)
 
-entries = []
-results = []
 cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
 
-#Constants we can change
-cleaner.k_engine_change = 0.0145
-cleaner.k_const_change = 0.240
-cleaner.k_driver_change = 0.19
-cleaner.k_const_impact = 0.80
-cleaner.k_eng_impact = (1 - cleaner.k_const_impact)
-cleaner.k_driver_impact = 0.02
-        
-cleaner.k_rookie_pwr = 0.40
-#cleaner.k_rookie_variance = 5
-cleaner.k_race_regress_exp = 0.87  #TODO needs to change!
-#cleaner.k_variance_multiplier_end = 1.5
+# Run gradient descent
+alpha = 0.18
+stop = 0.02
+entries, errors, results = cleaner.constructDataset()
+grad = gradient(entries, errors)
+while np.linalg.norm(grad) > stop:
+    # Move in the direction of the gradient
+    # N.B. this is point-wise multiplication, not a dot product
+    cleaner.theta = cleaner.theta - grad*alpha
+    mse = squaredError(errors).mean()
+    print(mse)
+    entries, errors, results = cleaner.constructDataset()
+    grad = gradient(entries, errors)
 
-cleaner.k_eng_regress = 1.04
-cleaner.k_const_regress = 0.60
-cleaner.k_driver_regress = 0.67
-
-cleaner.constructDataset(entries, results)
-#print(entries[-10:])
-#print(results[-10:])
-X = np.array(entries)
-y = results
+print("Gradient descent finished. MSE="+str(mse))
+print(cleaner.theta)
 
 forest = RandomForestRegressor(random_state=0, n_estimators=100)
-forest.fit(X, y)
+forest.fit(entries, results)
+y_hat = forest.predict(entries)
+print('MSE: ' + str(mean_squared_error(results, y_hat)))
 
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 newDrivers = {int(did): cid for did, cid in newDrivers.items()}
@@ -89,7 +92,11 @@ outFile = {} # The object where we write output
 driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
-    driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
+    if int(did) == -1:  # Cases when driver doesn't exist in data
+        driversToWrite[int(did)]["name"] = "Nicholas Latifi"
+        cleaner.addNewDriver(int(did), "Nicholas Latifi", cid)
+    else:
+        driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
         cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
     driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
@@ -131,7 +138,8 @@ for did, cid in newDrivers.items():
         cleaner.drivers[did].constructor.engine.pwr,
         cleaner.drivers[did].trackpwr[circuit],
         cleaner.drivers[did].constructor.trackpwr[circuit],
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit]
+        cleaner.drivers[did].constructor.engine.trackpwr[circuit],
+        1
     ]
     predictedEntrants.append(entry)
 

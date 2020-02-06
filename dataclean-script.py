@@ -37,7 +37,7 @@ try:
     with connection.cursor() as cursor:
         getDriversData(cursor, driversData)
         getConstructorData(cursor, constructorsData)
-        for x in range(2003, 2020):
+        for x in range(2003, 2021):
             addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, x)
         getEngineData(enginesData)
         addEngineToConstructor(seasonsData)
