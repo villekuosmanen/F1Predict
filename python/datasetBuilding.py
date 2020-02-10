@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import math
 import copy
+from statistics import mean
 
 from .f1Data import Season
 from .f1Data import RaceData
@@ -37,10 +38,12 @@ class F1DataCleaner:
         self.k_engine_change = 0.05
         self.k_track_change_multiplier = 3
         self.k_rookie_pwr = 0.70
-        self.k_rookie_variance = 5
-        self.k_race_regress_exp = 0.87  # TODO needs to change!
-        self.k_variance_multiplier_end = 1.5
 
+        self.k_rookie_variance = 1
+        self.k_driver_variance_change = 0.15
+        self.k_const_variance_change = 0.15
+        self.k_engine_variance_change = 0.06
+        self.k_variance_multiplier_end = 1
         self.k_eng_regress = 0.9
         self.k_const_regress = 0.9
         self.k_driver_regress = 0.74
@@ -50,6 +53,9 @@ class F1DataCleaner:
         self.drivers = {}  # DriverId, Driver
         self.constructors = {}  # ConstructorId, Constructor
         self.engines = {}  # EngineId, Engine
+        self.driver_variances = []
+        self.const_variances = []
+        self.engine_variances = []
         entries = []
         errors = []
         results = []
@@ -125,8 +131,10 @@ class F1DataCleaner:
         # Regress all powers towards the mean
         for (engid, eng) in self.engines.items():
             eng.pwr *= self.k_eng_regress
+            eng.variance *= self.k_variance_multiplier_end
         for (constid, const) in self.constructors.items():
             const.pwr *= self.k_const_regress
+            const.variance *= self.k_variance_multiplier_end
         for (drivId, driver) in self.drivers.items():
             driver.pwr *= self.k_driver_regress
             driver.variance *= self.k_variance_multiplier_end
@@ -143,8 +151,7 @@ class F1DataCleaner:
             if engineId not in self.engines:
                 self.engines[engineId] = Engine(self.enginesData[engineId])
             if cId not in self.constructors:
-                self.constructors[cId] = Constructor(
-                    self.constructorsData[cId], None)
+                self.constructors[cId] = Constructor(self.constructorsData[cId], None)
             # Assign it its engine
             self.constructors[cId].engine = self.engines[engineId]
 
@@ -172,6 +179,18 @@ class F1DataCleaner:
             self.drivers[did].constructor.trackpwr[circuitId] += err * self.k_const_change * self.k_track_change_multiplier
             self.drivers[did].constructor.engine.trackpwr[circuitId] += err * self.k_engine_change * self.k_track_change_multiplier
 
+            # Variances TODO
+            driv_var = abs(err) - self.drivers[did].variance
+            self.drivers[did].variance += self.k_driver_variance_change * driv_var
+            self.driver_variances.append(abs(driv_var))
+
+            const_var = abs(err) - self.drivers[did].constructor.variance
+            self.drivers[did].constructor.variance += self.k_const_variance_change * const_var
+            self.const_variances.append(abs(const_var))
+
+            eng_var = abs(err) - self.drivers[did].constructor.engine.variance
+            self.drivers[did].constructor.engine.variance += self.k_engine_variance_change * eng_var
+            self.engine_variances.append(abs(eng_var))
 
 
 def calculateScoresFromResults(qresults, circuitId, globaldev, trackdev):

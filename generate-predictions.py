@@ -2,16 +2,8 @@ from python import *
 
 import operator
 import pickle
-import os
 import numpy as np
 import json
-from ipyparallel import Client
-from itertools import repeat
-
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import train_test_split
-
 
 def gradient(x, err):
     grad = -(1.0/len(x)) * err @ x
@@ -72,13 +64,24 @@ while np.linalg.norm(grad) > stop:
     # Move in the direction of the gradient
     # N.B. this is point-wise multiplication, not a dot product
     cleaner.theta = cleaner.theta - grad*alpha
-    mae = errors.mean()
+    mae = np.array([abs(x) for x in errors]).mean()
     print(mae)
     entries, errors, results = cleaner.constructDataset()
     grad = gradient(entries, errors)
 
 print("Gradient descent finished. MAE="+str(mae))
 print(cleaner.theta)
+
+with open('out/driver_variances.pickle', 'wb') as out:
+    pickle.dump(cleaner.driver_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+with open('out/const_variances.pickle', 'wb') as out:
+    pickle.dump(cleaner.const_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+with open('out/engine_variances.pickle', 'wb') as out:
+    pickle.dump(cleaner.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+
+# Save model (if needed):
+with open('out/trained_cleaner.pickle', 'wb') as out:
+    pickle.dump(cleaner, out, protocol=pickle.HIGHEST_PROTOCOL)
 
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 newDrivers = {int(did): cid for did, cid in newDrivers.items()}
@@ -144,15 +147,20 @@ linearRegResults = [np.dot(x, cleaner.theta) for x in predictedEntrants]
 driverResults = {} # {did: {position: amount}}
 orderedResults = [] # [(did, prediction) ...]
 for index, (did, cid) in enumerate(newDrivers.items()):
-    newDrivers[did] = linearRegResults[index]
+    participant = {}
+    participant["pwr"] = linearRegResults[index]
+    participant["driv_var"] = cleaner.drivers[did].variance
+    participant["const_var"] = cleaner.drivers[did].constructor.variance
+    participant["eng_var"] = cleaner.drivers[did].constructor.engine.variance
+    newDrivers[did] = participant
+
     driverResults[int(did)] = {}
     orderedResults.append((did, linearRegResults[index]))
-print(newDrivers)
     
 orderedResults.sort(key = operator.itemgetter(1))
 outFile["order"] = [a for (a, b) in orderedResults]
     
-for i in range(1000):
+for i in range(10000):
     scoreList = predictQualiResults(circuit, newDrivers)
     for i, drivRes in enumerate(scoreList):
         if i not in driverResults[drivRes[0]]:
