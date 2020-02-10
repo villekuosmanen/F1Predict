@@ -44,16 +44,16 @@ def predictQualiResults(circuitId, participants):
 
 def runQualifying(circuitId, participants):
     scores = {}
-    for driver, powerScore in participants.items():
-        did = int(driver)
+    for did, driver in participants.items():
+        did = int(did)
         score = None
-        # cid only used if driver is new...
 
-        rand = (random.weibullvariate(1.95, 1.55) - 1) * 0.08 #TODO rewrite this!
+        rand = random.normalvariate(0, driver["driv_var"]) # Experimental std
+        rand += random.normalvariate(0, driver["const_var"])
+        rand += random.normalvariate(0, driver["eng_var"])
+        rand *= 0.33
         mistakeOdds = random.random()
         if mistakeOdds < 0.01:    #TODO mistakes!!
             rand += 4
-        #print(str(powerScore))
-        #print("Score: " + str(powerScore + rand) + ", Rand: " + str(rand))
-        scores[did] = powerScore + rand
+        scores[did] = driver["pwr"] + rand
     return scores
