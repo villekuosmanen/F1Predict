@@ -5,7 +5,6 @@ import pickle
 import numpy as np
 import json
 
-
 def gradient(x, err):
     grad = -(1.0/len(x)) * err @ x
     return grad

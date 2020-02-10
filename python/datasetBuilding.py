@@ -44,7 +44,6 @@ class F1DataCleaner:
         self.k_const_variance_change = 0.15
         self.k_engine_variance_change = 0.06
         self.k_variance_multiplier_end = 1
-
         self.k_eng_regress = 0.9
         self.k_const_regress = 0.9
         self.k_driver_regress = 0.74
