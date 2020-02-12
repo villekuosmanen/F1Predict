@@ -56,6 +56,7 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
     sql = "SELECT `raceId`, `round`, `circuitId`, `name` FROM `races` WHERE `year`=%s"
     cursor.execute(sql, year)
     result = cursor.fetchall()
+    no_mistakes = 0
     
     for x in result:
         circuitId = x.get('circuitId')
@@ -71,7 +72,8 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
 
         raceData = RaceData(circuitId, roundNo)
         s.addRace(x.get('raceId'), raceData)
-        res = addQualiResults(cursor, qualiResultsData, q3no, q2no, x.get('raceId'))
+        res, mistakes = addQualiResults(cursor, qualiResultsData, q3no, q2no, x.get('raceId'))
+        no_mistakes += mistakes
         if not res:
             # Fail: there were no quali results! Therefore add race to future races object
             if futureRaces is None:
@@ -85,14 +87,15 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
     if futureRaces is not None:
         with open('data/futureRaces.json', 'w') as fp:
             json.dump(futureRaces, fp)
-
     seasonsData[year] = s
+    return no_mistakes
 
 def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
     """Adds quali results from a race. Each result has a separate object for each driver's performance
     
         Returns true if quali results were found, and false otherwise"""
     qs = []
+    mistakes = 0
     
     sql = "SELECT `driverId`, `constructorId`, `q1`, `q2`, `q3`, `position` FROM `qualifying` WHERE `raceId`=%s"
     cursor.execute(sql, raceId)
@@ -111,6 +114,7 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
             if (index < q3no and (q3 is None or not q3)) or (index < q2no and (q2 is None or not q2)):
                 #Driver didn't participate to a qualifying they got in. Can take several actions but now just ignore them
                 print("Race " + str(raceId) + ", place " + str(index + 1) + " failed to set a time")
+                mistakes += 1
                 continue
 
             if (fastestTimeOfAll == None):
@@ -120,9 +124,13 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
                 #lastBestTime = slowerTime(lastBestTime, bestTime)
                 if bestTime < 1.08*fastestTimeOfAll:    #Using a 109% rule
                     qs.append( (x.get('driverId'), x.get('constructorId'), bestTime) ) #A tuple
+                else:
+                    mistakes += 1
+            else:
+                mistakes += 1
         qualiResultsData[raceId] = qs
-        return True
-    return False
+        return True, mistakes
+    return False, mistakes
 
 def getDriversData(cursor, driversData):
     """Gathers the wanted data from all drivers"""

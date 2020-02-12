@@ -48,12 +48,12 @@ def runQualifying(circuitId, participants):
         did = int(did)
         score = None
 
-        rand = random.normalvariate(0, driver["driv_var"]) # Experimental std
+        rand = random.normalvariate(0, driver["driv_var"])
         rand += random.normalvariate(0, driver["const_var"])
         rand += random.normalvariate(0, driver["eng_var"])
         rand *= 0.33
         mistakeOdds = random.random()
-        if mistakeOdds < 0.01:    #TODO mistakes!!
+        if mistakeOdds < 0.031:    #Experimentally validated!
             rand += 4
         scores[did] = driver["pwr"] + rand
     return scores

@@ -195,7 +195,6 @@ class F1DataCleaner:
 
 def calculateScoresFromResults(qresults, circuitId, globaldev, trackdev):
     '''Return a list of standardised quali score values for the quali results.'''
-    # Make sure all drivers have been added to the list and their info is correct
     best=qresults[0][2]
 
     # Only the times. Maintains the same order as the original tuples, so the same index can be used

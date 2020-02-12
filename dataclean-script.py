@@ -35,13 +35,16 @@ qualiChanges = pd.read_csv('data/qualiChanges.csv')
 print(qualiChanges)
 try:
     with connection.cursor() as cursor:
+        total_mistakes = 0
         getDriversData(cursor, driversData)
         getConstructorData(cursor, constructorsData)
         for x in range(2003, 2021):
-            addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, x)
+            no_mistakes = addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, x)
+            total_mistakes += no_mistakes
         getEngineData(enginesData)
         addEngineToConstructor(seasonsData)
         getTeamChangeData(seasonsData)
+        print(total_mistakes)
 finally:
     connection.close()
 
