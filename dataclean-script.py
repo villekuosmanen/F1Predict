@@ -53,17 +53,17 @@ try:
 finally:
     connection.close()
 
-with open('data/seasonsData.txt', 'wb') as out:
+with open('data/seasonsData.pickle', 'wb') as out:
     pickle.dump(seasonsData, out, protocol=pickle.HIGHEST_PROTOCOL)
     
-with open('data/qualiResultsData.txt', 'wb') as out:
+with open('data/qualiResultsData.pickle', 'wb') as out:
     pickle.dump(qualiResultsData, out, protocol=pickle.HIGHEST_PROTOCOL)
     
-with open('data/driversData.txt', 'wb') as out:
+with open('data/driversData.pickle', 'wb') as out:
     pickle.dump(driversData, out, protocol=pickle.HIGHEST_PROTOCOL)
     
-with open('data/constructorsData.txt', 'wb') as out:
+with open('data/constructorsData.pickle', 'wb') as out:
     pickle.dump(constructorsData, out, protocol=pickle.HIGHEST_PROTOCOL)
     
-with open('data/enginesData.txt', 'wb') as out:
+with open('data/enginesData.pickle', 'wb') as out:
     pickle.dump(enginesData, out, protocol=pickle.HIGHEST_PROTOCOL)

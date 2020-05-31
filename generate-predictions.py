@@ -45,19 +45,19 @@ with open("user_variables.txt") as f:
         key, value = line.partition("=")[::2]
         user_vars[key.rstrip()] = value.rstrip()
 
-with open('data/seasonsData.txt', 'rb') as handle:
+with open('data/seasonsData.pickle', 'rb') as handle:
     seasonsData = pickle.load(handle)
     
-with open('data/qualiResultsData.txt', 'rb') as handle:
+with open('data/qualiResultsData.pickle', 'rb') as handle:
     qualiResultsData = pickle.load(handle)
     
-with open('data/driversData.txt', 'rb') as handle:
+with open('data/driversData.pickle', 'rb') as handle:
     driversData = pickle.load(handle)
     
-with open('data/constructorsData.txt', 'rb') as handle:
+with open('data/constructorsData.pickle', 'rb') as handle:
     constructorsData = pickle.load(handle)
     
-with open('data/enginesData.txt', 'rb') as handle:
+with open('data/enginesData.pickle', 'rb') as handle:
     enginesData = pickle.load(handle)
 
 cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)

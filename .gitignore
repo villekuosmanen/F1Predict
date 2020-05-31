@@ -5,6 +5,7 @@ out
 *.sql
 *.xml
 *.ods
+*.pickle
 config.py
 .ipynb_checkpoints
 user_variables.txt
