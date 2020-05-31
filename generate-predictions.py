@@ -38,6 +38,13 @@ constructorsData = None
 #EngineId, name
 enginesData = None
 
+#Read user variables:
+user_vars = {}
+with open("user_variables.txt") as f:
+    for line in f:
+        key, value = line.partition("=")[::2]
+        user_vars[key.rstrip()] = value.rstrip()
+
 with open('data/seasonsData.txt', 'rb') as handle:
     seasonsData = pickle.load(handle)
     
@@ -168,5 +175,5 @@ for i in range(10000):
         driverResults[drivRes[0]][i] += 1
         
 outFile["predictions"] = driverResults
-with open('../F1PredictWeb/src/public/data/' + str(raceId) + '.json', 'w') as fp:
+with open(user_vars['predictions_output_folder'] + str(raceId) + '.json', 'w') as fp:
     json.dump(outFile, fp)

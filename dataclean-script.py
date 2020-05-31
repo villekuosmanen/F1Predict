@@ -21,13 +21,18 @@ constructorsData = {}
 #EngineId, name
 enginesData = {}
 
-#Set up a database connection:
+#Read user variables:
+user_vars = {}
+with open("user_variables.txt") as f:
+    for line in f:
+        key, value = line.partition("=")[::2]
+        user_vars[key.rstrip()] = value.rstrip()
 
-#Replace the username and password with the credentials to your own database
+#Set up a database connection:
 connection = pymysql.connect(host='localhost',
-                             user='f1user',
-                             password='f1pw',
-                             db='f1db',
+                             user=user_vars['db_username'],
+                             password=user_vars['db_password'],
+                             db=user_vars['db_database'],
                              charset='utf8',
                              cursorclass=pymysql.cursors.DictCursor)
 

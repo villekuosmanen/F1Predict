@@ -7,3 +7,4 @@ out
 *.ods
 config.py
 .ipynb_checkpoints
+user_variables.txt

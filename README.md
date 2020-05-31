@@ -6,13 +6,19 @@ The project uses the [Ergast F1 API](https://ergast.com/mrd/) for statistical da
 
 ## Running the project
 
-In order to run the prediction generator you first need to set up the SQL database where a local copy of the F1 data will be stored. To pull data from Ergast API, a convenience script `dbUpdater.sh` exists, which will download a database dump and run it on the local database. Replace your database name, username and password in the script with your own versions. You will also have to replace them inside `dataclean-script.py`. You will have to install pip packages used by these Python scripts -- we recommend using a virtual envirionment (A requirements.txt -file will be provided for convenience in the future).
+In order to run the prediction generator you first need to set up a MySQL database where a local copy of the F1 data will be stored. In addition, install the Pip packages required for the program by running the command `pip install -r requirements.txt`.
 
-To generate the predictions files, a Jupyter Notebook `ModelEvaluation.ipynb` is provided. Simply run all cells, and the file will be automatically saved in the data-folder of the F1PredictWeb-project, should one exist (you can replace the filepath if you want).
+To pull data from Ergast API, a convenience script `dbUpdater.sh` exists, which will download a database dump and run it on the local database. To log in to your database, you need to specify the username, password and database name in question. These are specified in your local file `user_variables.txt`. Do not commit this file to Git.
 
-## Documentation
+The generated predictions are saved to a new file inside a target folder. The target folder is specified in `user_variables.txt`.
 
-See the project Wiki for further details.
+### Example `user_variables.txt` file:
+db_username=username
+db_password=password
+db_database=f1db
+predictions_output_folder=../F1PredictWeb/src/public/data/
+
+The keys (left side of equation) must remain constant, but the values (right-hand side) can be changed to values you prefer. Bu using the example output folder, the predictions are automatically saved to F1ProjectWeb's data folder (if the repositories share the same root folder).
 
 ## How to contribute
 
