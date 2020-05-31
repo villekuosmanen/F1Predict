@@ -14,16 +14,16 @@ def squaredError(err):
 
 def getColor(constructor):
     return {
-        "Mercedes": "#00d2be",
-        "Ferrari": "#dc0000",
-        "Red Bull": "#1e41ff",
-        "Racing Point": "#f596c8",
-        "Williams": "#ffffff",
-        "Renault": "#fff500",
-        "Toro Rosso": "#469bff",
-        "Haas F1 Team": "#f0d787",
-        "McLaren": "#ff8700",
-        "Alfa Romeo": "#9b0000"
+        "Mercedes": "#00D2BE",
+        "Ferrari": "#C00000",
+        "Red Bull": "#0600EF",
+        "Racing Point": "#F596C8",
+        "Williams": "#0082FA",
+        "Renault": "#FFF500",
+        "Toro Rosso": "#C8C8C8",
+        "Haas F1 Team": "#787878",
+        "McLaren": "#FF8700",
+        "Alfa Romeo": "#960000"
     }.get(constructor, "#000000")
 
 #Create data classes
