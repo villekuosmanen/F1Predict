@@ -48,6 +48,58 @@ class F1DataCleaner:
         self.k_const_regress = 0.9
         self.k_driver_regress = 0.74
 
+    # Used in evaluation
+    def constructPredictions(self):
+        # Initializing data structures
+        self.drivers = {}  # DriverId, Driver
+        self.constructors = {}  # ConstructorId, Constructor
+        self.engines = {}  # EngineId, Engine
+        self.driver_variances = []
+        self.const_variances = []
+        self.engine_variances = []
+
+        predictions = []
+
+        # Deviation variables
+        globaldev = [None] * 20
+        trackdev = {}
+        for year, season in self.seasonsData.items():  # Read every season:
+            self._updateModelsForYear(season)
+            racesAsList = list(season.races.items())
+            racesAsList.sort(key=lambda x: x[1].round)
+            for raceId, data in racesAsList:
+                # A single race
+                if raceId in self.qualiResultsData:
+                    qresults = self.qualiResultsData[raceId]
+                    self._addNewDriversAndConstructors(qresults, year)
+                    pwr_changes = {}
+
+                    # Scores and qresults need to be in the same, sequential order by score
+                    qresults.sort(key=lambda x: x[2])
+                    scores = calculateScoresFromResults(
+                        qresults, data.circuitId, globaldev, trackdev)
+
+                    prediction = []
+                    for index, (driverId, constId, time) in enumerate(qresults):
+                            self._addNewCircuitsToEntities(
+                                driverId, data.circuitId)
+                            entry = self._buildEntry(driverId, data.circuitId)
+
+                            # Predict result for this entrant
+                            y_hat = np.dot(entry, self.theta) + random.uniform(0, 0.00001)
+                            prediction.append((driverId, y_hat))
+                            # Calculate error
+                            err = scores[index] - y_hat
+                            pwr_changes[driverId] = err
+
+                    prediction.sort(key=lambda x: x[1])
+                    predictions.append([x[0] for x in prediction])
+                    # Set old model values to be new values
+                    self._updateModels(pwr_changes, data.circuitId)
+                    
+            self._updateModelsAtEndOfYear(season)
+        return predictions
+
     def constructDataset(self):
         # Initializing data structures
         self.drivers = {}  # DriverId, Driver

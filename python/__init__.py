@@ -4,3 +4,4 @@ from .f1Models import *
 from .simulation import *
 from .datasetBuilding import *
 from .monteCarlo import *
+from .baselineModels import *
