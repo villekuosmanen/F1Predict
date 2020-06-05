@@ -4,7 +4,11 @@ import pandas as pd
 import numpy as np
 import math
 import copy
+import datetime
 from statistics import mean
+from surprise import SVD
+from surprise import Dataset
+from surprise import Reader
 
 from .f1Data import Season
 from .f1Data import RaceData
@@ -108,6 +112,7 @@ class F1DataCleaner:
         self.driver_variances = []
         self.const_variances = []
         self.engine_variances = []
+        self.algo = SVD(n_factors=50, n_epochs=20)
         entries = []
         errors = []
         results = []
@@ -131,10 +136,16 @@ class F1DataCleaner:
                     scores = calculateScoresFromResults(
                         qresults, data.circuitId, globaldev, trackdev)
 
+                    # Train track predictor:
+                    track_results_df = self._generateTrackResultsDf()
+                    reader = Reader(rating_scale=(track_results_df['score'].min(), track_results_df['score'].max()))
+                    track_dataset = Dataset.load_from_df(track_results_df, reader).build_full_trainset()
+                    self.algo.fit(track_dataset)
+
                     for index, (driverId, constId, time) in enumerate(qresults):
                             self._addNewCircuitsToEntities(
-                                driverId, data.circuitId)
-                            entry = self._buildEntry(driverId, data.circuitId)
+                                driverId, constId, data.circuitId)
+                            entry = self._buildEntry(driverId, constId, data.circuitId)
                             entries.append(entry)
                             results.append(scores[index])
 
@@ -152,25 +163,30 @@ class F1DataCleaner:
             self._updateModelsAtEndOfYear(season)
         return np.array(entries), np.array(errors), np.array(results)
 
-    def _addNewCircuitsToEntities(self, driverId, circuitId):
+    def _addNewCircuitsToEntities(self, driverId, constId, circuitId):
         if circuitId not in self.drivers[driverId].trackpwr:
             # TODO maybe change defaults
             self.drivers[driverId].trackpwr[circuitId] = 0
-        if circuitId not in self.drivers[driverId].constructor.trackpwr:
+        if circuitId not in self.constructors[constId].trackpwr:
             # TODO maybe change defaults
-            self.drivers[driverId].constructor.trackpwr[circuitId] = 0
-        if circuitId not in self.drivers[driverId].constructor.engine.trackpwr:
+            self.constructors[constId].trackpwr[circuitId] = 0
+        if circuitId not in self.engines[self.constructors[constId].engine].trackpwr:
             # TODO maybe change defaults
-            self.drivers[driverId].constructor.engine.trackpwr[circuitId] = 0
+            self.engines[self.constructors[constId].engine].trackpwr[circuitId] = 0
 
-    def _buildEntry(self, driverId, circuitId):
+    def _buildEntry(self, driverId, constId, circuitId):
+        # Get track-specific predictions:
+        driver_track_pwr = self.algo.predict(1000000 + driverId, circuitId).est
+        const_track_pwr = self.algo.predict(2000000 + constId, circuitId).est
+        engine_track_pwr = self.algo.predict(3000000 + self.constructors[constId].engine, circuitId).est
+
         entry = [
             self.drivers[driverId].pwr,
-            self.drivers[driverId].constructor.pwr,
-            self.drivers[driverId].constructor.engine.pwr,
-            self.drivers[driverId].trackpwr[circuitId],
-            self.drivers[driverId].constructor.trackpwr[circuitId],
-            self.drivers[driverId].constructor.engine.trackpwr[circuitId],
+            self.constructors[constId].pwr,
+            self.engines[self.constructors[constId].engine].pwr,
+            driver_track_pwr if not math.isnan(driver_track_pwr) else 0,
+            const_track_pwr if not math.isnan(const_track_pwr) else 0,
+            engine_track_pwr if not math.isnan(engine_track_pwr) else 0,
             1   # Intercept
         ]
         return entry
@@ -205,7 +221,7 @@ class F1DataCleaner:
             if cId not in self.constructors:
                 self.constructors[cId] = Constructor(self.constructorsData[cId], None)
             # Assign it its engine
-            self.constructors[cId].engine = self.engines[engineId]
+            self.constructors[cId].engine = engineId
 
     def _addNewDriversAndConstructors(self, qresults, year):
         for res in qresults:
@@ -214,34 +230,52 @@ class F1DataCleaner:
                 if year > 2003:
                     self.drivers[res[0]].pwr = self.k_rookie_pwr
                     self.drivers[res[0]].variance = self.k_rookie_variance
-            if self.drivers[res[0]].constructor is not self.constructors[res[1]]:
-                self.drivers[res[0]].constructor = self.constructors[res[1]]
+            if self.drivers[res[0]].constructor is not res[1]:
+                self.drivers[res[0]].constructor = res[1]
+
+    def _generateTrackResultsDf(self):
+        data = []
+        for driverId, driver in self.drivers.items():
+            for circuitId, power in driver.trackpwr.items():
+                data.append([driverId + 1000000, circuitId, power])
+
+        for constructorId, constructor in self.constructors.items():
+            for circuitId, power in constructor.trackpwr.items():
+                data.append([constructorId + 2000000, circuitId, power])
+
+        for engineId, engine in self.engines.items():
+            for circuitId, power in engine.trackpwr.items():
+                data.append([engineId + 3000000, circuitId, power])
+        return pd.DataFrame(data, columns = ['entityId', 'circuitId', "score"]) 
 
     def addNewDriver(self, did, name, cid):
-        self.drivers[did] = Driver(name, self.constructors[cid])
+        self.drivers[did] = Driver(name, cid)
         self.drivers[did].pwr = self.k_rookie_pwr
         self.drivers[did].variance = self.k_rookie_variance
 
     def _updateModels(self, pwr_changes, circuitId):
         for did, err in pwr_changes.items():
             self.drivers[did].pwr += err * self.k_driver_change
-            self.drivers[did].constructor.pwr += err * self.k_const_change
-            self.drivers[did].constructor.engine.pwr += err * self.k_engine_change
+            self.constructors[self.drivers[did].constructor].pwr += err * self.k_const_change
+            self.engines[self.constructors[self.drivers[did].constructor].engine].pwr += err * self.k_engine_change
+
             self.drivers[did].trackpwr[circuitId] += err * self.k_driver_change * self.k_track_change_multiplier
-            self.drivers[did].constructor.trackpwr[circuitId] += err * self.k_const_change * self.k_track_change_multiplier
-            self.drivers[did].constructor.engine.trackpwr[circuitId] += err * self.k_engine_change * self.k_track_change_multiplier
+            self.constructors[self.drivers[did].constructor].trackpwr[circuitId] += (
+                err * self.k_const_change * self.k_track_change_multiplier)
+            self.engines[self.constructors[self.drivers[did].constructor].engine].trackpwr[circuitId] += (
+                err * self.k_engine_change * self.k_track_change_multiplier)
 
             # Variances TODO
             driv_var = abs(err) - self.drivers[did].variance
             self.drivers[did].variance += self.k_driver_variance_change * driv_var
             self.driver_variances.append(abs(driv_var))
 
-            const_var = abs(err) - self.drivers[did].constructor.variance
-            self.drivers[did].constructor.variance += self.k_const_variance_change * const_var
+            const_var = abs(err) - self.constructors[self.drivers[did].constructor].variance
+            self.constructors[self.drivers[did].constructor].variance += self.k_const_variance_change * const_var
             self.const_variances.append(abs(const_var))
 
-            eng_var = abs(err) - self.drivers[did].constructor.engine.variance
-            self.drivers[did].constructor.engine.variance += self.k_engine_variance_change * eng_var
+            eng_var = abs(err) - self.engines[self.constructors[self.drivers[did].constructor].engine].variance
+            self.engines[self.constructors[self.drivers[did].constructor].engine].variance += self.k_engine_variance_change * eng_var
             self.engine_variances.append(abs(eng_var))
 
 
@@ -256,7 +290,6 @@ def calculateScoresFromResults(qresults, circuitId, globaldev, trackdev):
 
     # Standardised list
     stdList=[(x - median)/dev for x in times]
-    # print(stdList)
 
     updateDevValues(dev, circuitId, globaldev, trackdev)
     return [x/(np.median(list(filter(None.__ne__, globaldev))) + np.median(list(filter(None.__ne__, trackdev[circuitId])))/2)

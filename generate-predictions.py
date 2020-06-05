@@ -63,8 +63,8 @@ with open('data/enginesData.pickle', 'rb') as handle:
 cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
 
 # Run gradient descent
-alpha = 0.18
-stop = 0.02
+alpha = 0.14
+stop = 0.016
 entries, errors, results = cleaner.constructDataset()
 grad = gradient(entries, errors)
 while np.linalg.norm(grad) > stop:
@@ -95,6 +95,7 @@ newDrivers = {int(did): cid for did, cid in newDrivers.items()}
 
 outFile = {} # The object where we write output
 
+updatedNewDrivers = {}
 driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
@@ -104,10 +105,13 @@ for did, cid in newDrivers.items():
     else:
         driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
-        cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
-    driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
-    driversToWrite[int(did)]["color"] = getColor(cleaner.drivers[int(did)].constructor.name)
+        updatedNewDrivers[int(did)] = int(cid) # Data in newDrivers.json overwrites database
+    else:
+        updatedNewDrivers[int(did)] = cleaner.drivers[int(did)].constructor
+    driversToWrite[int(did)]["constructor"] = cleaner.constructors[cleaner.drivers[int(did)].constructor].name
+    driversToWrite[int(did)]["color"] = getColor(cleaner.constructors[cleaner.drivers[int(did)].constructor].name)
 outFile["drivers"] = driversToWrite
+newDrivers = updatedNewDrivers
 
 raceId = -1
 with open('data/futureRaces.json', 'r') as handle:
@@ -133,18 +137,18 @@ predictedEntrants = []
 for did, cid in newDrivers.items():
     if circuit not in cleaner.drivers[did].trackpwr:
         cleaner.drivers[did].trackpwr[circuit] = 0 #TODO maybe change defaults
-    if circuit not in cleaner.drivers[did].constructor.trackpwr:
-        cleaner.drivers[did].constructor.trackpwr[circuit] = 0 #TODO maybe change defaults
-    if circuit not in cleaner.drivers[did].constructor.engine.trackpwr:
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0 #TODO maybe change defaults
+    if circuit not in cleaner.constructors[cid].trackpwr:
+        cleaner.constructors[cid].trackpwr[circuit] = 0 #TODO maybe change defaults
+    if circuit not in cleaner.engines[cleaner.constructors[cid].engine].trackpwr:
+        cleaner.engines[cleaner.constructors[cid].engine].trackpwr[circuit] = 0 #TODO maybe change defaults
     
     entry = [
         cleaner.drivers[did].pwr,
-        cleaner.drivers[did].constructor.pwr, 
-        cleaner.drivers[did].constructor.engine.pwr,
+        cleaner.constructors[cid].pwr, 
+        cleaner.engines[cleaner.constructors[cid].engine].pwr,
         cleaner.drivers[did].trackpwr[circuit],
-        cleaner.drivers[did].constructor.trackpwr[circuit],
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit],
+        cleaner.constructors[cid].trackpwr[circuit],
+        cleaner.engines[cleaner.constructors[cid].engine].trackpwr[circuit],
         1
     ]
     predictedEntrants.append(entry)
@@ -157,8 +161,8 @@ for index, (did, cid) in enumerate(newDrivers.items()):
     participant = {}
     participant["pwr"] = linearRegResults[index]
     participant["driv_var"] = cleaner.drivers[did].variance
-    participant["const_var"] = cleaner.drivers[did].constructor.variance
-    participant["eng_var"] = cleaner.drivers[did].constructor.engine.variance
+    participant["const_var"] = cleaner.constructors[cid].variance
+    participant["eng_var"] = cleaner.engines[cleaner.constructors[cid].engine].variance
     newDrivers[did] = participant
 
     driverResults[int(did)] = {}
