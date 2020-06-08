@@ -40,7 +40,7 @@ class F1DataCleaner:
         self.k_driver_change = 0.2
         self.k_const_change = 0.14
         self.k_engine_change = 0.05
-        self.k_track_change_multiplier = 3
+        self.k_track_change_multiplier = 5
         self.k_rookie_pwr = 0.70
 
         self.k_rookie_variance = 1

@@ -63,11 +63,13 @@ with open('data/enginesData.pickle', 'rb') as handle:
 cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
 
 # Run gradient descent
-alpha = 0.14
-stop = 0.016
+alpha = 0.17
+stop = 0.018
+max_training_duration = 10
+training_duration = 0
 entries, errors, results = cleaner.constructDataset()
 grad = gradient(entries, errors)
-while np.linalg.norm(grad) > stop:
+while np.linalg.norm(grad) > stop and (not training_duration >= max_training_duration):
     # Move in the direction of the gradient
     # N.B. this is point-wise multiplication, not a dot product
     cleaner.theta = cleaner.theta - grad*alpha
@@ -75,6 +77,7 @@ while np.linalg.norm(grad) > stop:
     print(mae)
     entries, errors, results = cleaner.constructDataset()
     grad = gradient(entries, errors)
+    training_duration += 1
 
 print("Gradient descent finished. MAE="+str(mae))
 print(cleaner.theta)
@@ -108,8 +111,8 @@ for did, cid in newDrivers.items():
         updatedNewDrivers[int(did)] = int(cid) # Data in newDrivers.json overwrites database
     else:
         updatedNewDrivers[int(did)] = cleaner.drivers[int(did)].constructor
-    driversToWrite[int(did)]["constructor"] = cleaner.constructors[cleaner.drivers[int(did)].constructor].name
-    driversToWrite[int(did)]["color"] = getColor(cleaner.constructors[cleaner.drivers[int(did)].constructor].name)
+    driversToWrite[int(did)]["constructor"] = cleaner.constructors[updatedNewDrivers[int(did)]].name
+    driversToWrite[int(did)]["color"] = getColor(cleaner.constructors[updatedNewDrivers[int(did)]].name)
 outFile["drivers"] = driversToWrite
 newDrivers = updatedNewDrivers
 
