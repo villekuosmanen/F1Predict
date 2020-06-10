@@ -79,15 +79,15 @@ while np.linalg.norm(grad) > stop:
 print("Gradient descent finished. MAE="+str(mae))
 print(cleaner.theta)
 
-with open('out/driver_variances.pickle', 'wb') as out:
+with open('out/driver_variances.pickle', 'wb+') as out:
     pickle.dump(cleaner.driver_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
-with open('out/const_variances.pickle', 'wb') as out:
+with open('out/const_variances.pickle', 'wb+') as out:
     pickle.dump(cleaner.const_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
-with open('out/engine_variances.pickle', 'wb') as out:
+with open('out/engine_variances.pickle', 'wb+') as out:
     pickle.dump(cleaner.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Save model (if needed):
-with open('out/trained_cleaner.pickle', 'wb') as out:
+with open('out/trained_cleaner.pickle', 'wb+') as out:
     pickle.dump(cleaner, out, protocol=pickle.HIGHEST_PROTOCOL)
 
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
