@@ -30,3 +30,11 @@ The keys (left side of equation) must remain constant, but the values (right-han
 ## How to contribute
 
 If you're interested in contributing to the project, feel free to open an issue about the feature or improvement you would like to add. If an issue for it already exists, comment under it to express your interest. If you don't have a specific issue in mind but would like to contribute, you can open a new issue saying you'd like to contribute
+
+## Credits
+
+### Qualifying model
+- Ville Kuosmanen
+
+### Special thanks
+- [Ergast F1 API](https://ergast.com/mrd/)
