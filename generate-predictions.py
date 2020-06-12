@@ -64,8 +64,8 @@ cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructors
 
 # Run gradient descent
 alpha = 0.17
-stop = 0.018
-max_training_duration = 10
+stop = 0.013
+max_training_duration = 15
 training_duration = 0
 entries, errors, results = cleaner.constructDataset()
 grad = gradient(entries, errors)
@@ -145,15 +145,7 @@ for did, cid in newDrivers.items():
     if circuit not in cleaner.engines[cleaner.constructors[cid].engine].trackpwr:
         cleaner.engines[cleaner.constructors[cid].engine].trackpwr[circuit] = 0 #TODO maybe change defaults
     
-    entry = [
-        cleaner.drivers[did].pwr,
-        cleaner.constructors[cid].pwr, 
-        cleaner.engines[cleaner.constructors[cid].engine].pwr,
-        cleaner.drivers[did].trackpwr[circuit],
-        cleaner.constructors[cid].trackpwr[circuit],
-        cleaner.engines[cleaner.constructors[cid].engine].trackpwr[circuit],
-        1
-    ]
+    entry = cleaner._buildEntry(did, cid, circuit)
     predictedEntrants.append(entry)
 
 linearRegResults = [np.dot(x, cleaner.theta) for x in predictedEntrants]

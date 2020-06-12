@@ -34,13 +34,13 @@ class F1DataCleaner:
 
     def _initialiseConstants(self):
         # Weights
-        self.theta = [0, 0, 0, 0, 0, 0, 0] # Weights: Driv, cons, eng, track-specifics and intercept
+        self.theta = [0, 0, 0, 0, 0, 0, 0, 0, 0] # Weights: Driv, cons, eng, track-specifics and intercept
 
         # Various hyperparameters
         self.k_driver_change = 0.2
         self.k_const_change = 0.14
         self.k_engine_change = 0.05
-        self.k_track_change_multiplier = 5
+        self.k_track_change_multiplier = 4
         self.k_rookie_pwr = 0.70
 
         self.k_rookie_variance = 1
@@ -54,14 +54,7 @@ class F1DataCleaner:
 
     # Used in evaluation
     def constructPredictions(self):
-        # Initializing data structures
-        self.drivers = {}  # DriverId, Driver
-        self.constructors = {}  # ConstructorId, Constructor
-        self.engines = {}  # EngineId, Engine
-        self.driver_variances = []
-        self.const_variances = []
-        self.engine_variances = []
-
+        self._prepareDataStructures()
         predictions = []
 
         # Deviation variables
@@ -83,11 +76,13 @@ class F1DataCleaner:
                     scores = calculateScoresFromResults(
                         qresults, data.circuitId, globaldev, trackdev)
 
+                    self._trainTrackPredictor()
+
                     prediction = []
                     for index, (driverId, constId, time) in enumerate(qresults):
                             self._addNewCircuitsToEntities(
-                                driverId, data.circuitId)
-                            entry = self._buildEntry(driverId, data.circuitId)
+                                driverId, constId, data.circuitId)
+                            entry = self._buildEntry(driverId, constId, data.circuitId)
 
                             # Predict result for this entrant
                             y_hat = np.dot(entry, self.theta) + random.uniform(0, 0.00001)
@@ -105,14 +100,7 @@ class F1DataCleaner:
         return predictions
 
     def constructDataset(self):
-        # Initializing data structures
-        self.drivers = {}  # DriverId, Driver
-        self.constructors = {}  # ConstructorId, Constructor
-        self.engines = {}  # EngineId, Engine
-        self.driver_variances = []
-        self.const_variances = []
-        self.engine_variances = []
-        self.algo = SVD(n_factors=50, n_epochs=20)
+        self._prepareDataStructures()
         entries = []
         errors = []
         results = []
@@ -136,11 +124,7 @@ class F1DataCleaner:
                     scores = calculateScoresFromResults(
                         qresults, data.circuitId, globaldev, trackdev)
 
-                    # Train track predictor:
-                    track_results_df = self._generateTrackResultsDf()
-                    reader = Reader(rating_scale=(track_results_df['score'].min(), track_results_df['score'].max()))
-                    track_dataset = Dataset.load_from_df(track_results_df, reader).build_full_trainset()
-                    self.algo.fit(track_dataset)
+                    self._trainTrackPredictor()
 
                     for index, (driverId, constId, time) in enumerate(qresults):
                             self._addNewCircuitsToEntities(
@@ -174,6 +158,22 @@ class F1DataCleaner:
             # TODO maybe change defaults
             self.engines[self.constructors[constId].engine].trackpwr[circuitId] = 0
 
+    def _prepareDataStructures(self):
+        self.drivers = {}  # DriverId, Driver
+        self.constructors = {}  # ConstructorId, Constructor
+        self.engines = {}  # EngineId, Engine
+        self.driver_variances = []
+        self.const_variances = []
+        self.engine_variances = []
+        self.algo = SVD(n_factors=8, n_epochs=10)
+
+    def _trainTrackPredictor(self):
+        # Train track predictor:
+        track_results_df = self._generateTrackResultsDf()
+        reader = Reader(rating_scale=(track_results_df['score'].min(), track_results_df['score'].max()))
+        track_dataset = Dataset.load_from_df(track_results_df, reader).build_full_trainset()
+        self.algo.fit(track_dataset)
+
     def _buildEntry(self, driverId, constId, circuitId):
         # Get track-specific predictions:
         driver_track_pwr = self.algo.predict(1000000 + driverId, circuitId).est
@@ -184,9 +184,11 @@ class F1DataCleaner:
             self.drivers[driverId].pwr,
             self.constructors[constId].pwr,
             self.engines[self.constructors[constId].engine].pwr,
-            driver_track_pwr if not math.isnan(driver_track_pwr) else 0,
+            self.drivers[driverId].trackpwr[circuitId],
             const_track_pwr if not math.isnan(const_track_pwr) else 0,
             engine_track_pwr if not math.isnan(engine_track_pwr) else 0,
+            const_track_pwr**2 if not math.isnan(const_track_pwr) else 0,
+            engine_track_pwr**2 if not math.isnan(engine_track_pwr) else 0,
             1   # Intercept
         ]
         return entry
@@ -235,10 +237,6 @@ class F1DataCleaner:
 
     def _generateTrackResultsDf(self):
         data = []
-        for driverId, driver in self.drivers.items():
-            for circuitId, power in driver.trackpwr.items():
-                data.append([driverId + 1000000, circuitId, power])
-
         for constructorId, constructor in self.constructors.items():
             for circuitId, power in constructor.trackpwr.items():
                 data.append([constructorId + 2000000, circuitId, power])
@@ -265,7 +263,6 @@ class F1DataCleaner:
             self.engines[self.constructors[self.drivers[did].constructor].engine].trackpwr[circuitId] += (
                 err * self.k_engine_change * self.k_track_change_multiplier)
 
-            # Variances TODO
             driv_var = abs(err) - self.drivers[did].variance
             self.drivers[did].variance += self.k_driver_variance_change * driv_var
             self.driver_variances.append(abs(driv_var))
