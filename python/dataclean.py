@@ -104,7 +104,6 @@ def addRaceSeasonData(cursor, seasonsData, raceResultsData, year):
 
         raceData = RaceData(circuitId, roundNo)
         s.addRace(x.get('raceId'), raceData)
-        res = addRaceResults(cursor, raceResultsData, x.get('raceId'))
 
     seasonsData[year] = s
 
