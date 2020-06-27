@@ -118,7 +118,7 @@ with open('data/futureRaces.json', 'r') as handle:
     #print(seasonsData)
     
 # Edit index file
-with open('../F1PredictWeb/src/public/data/index.json', 'r+') as handle:
+with open(user_vars['predictions_output_folder'] + 'index.json', 'r+') as handle:
     data = json.load(handle)
     data[str(futureRaces[0]["year"])][str(raceId)] = circuitName
     handle.seek(0)        # <--- should reset file position to the beginning.

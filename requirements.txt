@@ -30,7 +30,7 @@ mistune==0.8.4
 nbconvert==5.4.0
 nbformat==4.4.0
 notebook==5.7.8
-numpy==1.15.4
+numpy==1.16.0
 pandas==0.23.4
 pandocfilters==1.4.2
 parso==0.3.1
@@ -50,7 +50,6 @@ pyzmq==17.1.2
 qtconsole==4.4.3
 rope==0.11.0
 scikit-learn==0.20.2
-scipy==1.2.0
 Send2Trash==1.5.0
 six==1.12.0
 terminado==0.8.1
