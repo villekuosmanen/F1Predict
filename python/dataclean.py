@@ -106,6 +106,7 @@ def addRaceSeasonData(cursor, seasonsData, raceResultsData, year):
         s.addRace(x.get('raceId'), raceData)
         addRaceResults(cursor, raceResultsData, x.get('raceId'))
 
+
     seasonsData[year] = s
 
 def addRaceResults(cursor, raceResultsData, raceId):
