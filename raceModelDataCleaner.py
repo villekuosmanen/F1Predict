@@ -30,7 +30,9 @@ connection = pymysql.connect(host='localhost',
 try:
     with connection.cursor() as cursor:
         for year in range(2003, 2021):
-            addRaceSeasonData(cursor, raceSeasonsData, raceResultsData, year)         
+            addRaceSeasonData(cursor, raceSeasonsData, raceResultsData, year)
+        addEngineToConstructor(raceSeasonsData)
+        getTeamChangeData(raceSeasonsData)        
 finally:
     connection.close()
 
