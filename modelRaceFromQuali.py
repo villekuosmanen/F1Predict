@@ -22,8 +22,10 @@ class F1RaceFromQualiModel:
                 # A single race
                 if raceId in self.raceResultsData and raceId in self.qualiResultsData:
                     qualiResults = self.qualiResultsData[raceId]
-                    driver_ids = [x['driverId'] for x in qualiResults]
-                    predictions.append(driver_ids)
+                    predictedRaceResults = []
+                    for i in range(len(qualiResults)):
+                    	predictedRaceResults.append(qualiResults[i])
+                    predictions.append(predictedRaceResults)
         return predictions
 
 
