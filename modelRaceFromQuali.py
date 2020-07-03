@@ -1,5 +1,3 @@
-import random
-
 from python import *
 
 import pickle
@@ -24,7 +22,7 @@ class F1RaceFromQualiModel:
                     qualiResults = self.qualiResultsData[raceId]
                     predictedRaceResults = []
                     for i in range(len(qualiResults)):
-                    	predictedRaceResults.append(qualiResults[i])
+                    	predictedRaceResults.append(qualiResults[i][0])
                     predictions.append(predictedRaceResults)
         return predictions
 
