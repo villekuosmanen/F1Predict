@@ -13,7 +13,7 @@ class EloDriver:
         self.trackRatings = {}
         self.constructor = constructor
         self.rating = 2200  # Default rating
-    def changeConstrucutor(self, constructor):
+    def changeConstrucutor(self, constructor): # Spelling mistake
         self.constructor = constructor
 
 class EloRaceModel:
