@@ -33,17 +33,20 @@ class F1DataCleaner:
         self.theta = [0, 0, 0, 0, 0, 0, 0] # Weights: Driv, cons, eng, track-specifics and intercept
 
         # Various hyperparameters
-        self.k_driver_change = 0.2
-        self.k_const_change = 0.14
-        self.k_engine_change = 0.05
-        self.k_track_change_multiplier = 3
+        self.k_driver_change = 0.27
+        self.k_const_change = 0.18
+        self.k_engine_change = 0.060
+        self.k_track_change_multiplier = 1
         self.k_rookie_pwr = 0.70
 
         self.k_rookie_variance = 1
-        self.k_driver_variance_change = 0.15
+        self.k_driver_variance_change = 0.20
         self.k_const_variance_change = 0.15
-        self.k_engine_variance_change = 0.06
-        self.k_variance_multiplier_end = 1
+        self.k_engine_variance_change = 0.055
+        self.k_variance_multiplier_end = 1.5
+        self.k_driver_const_change_variance_multiplier = 1.2
+        self.k_const_name_change_variace_multiplier = 1.5
+
         self.k_eng_regress = 0.9
         self.k_const_regress = 0.9
         self.k_driver_regress = 0.74
@@ -197,6 +200,7 @@ class F1DataCleaner:
         for new, old in season.teamChanges.items():
             self.constructors[new] = self.constructors[old]
             self.constructors[new].name = self.constructorsData[new]
+            self.constructors[new].variance *= self.k_const_name_change_variace_multiplier
 
         for cId, engineId in season.constructorEngines.items():
             # Check that the constructor and engine exist
@@ -216,6 +220,7 @@ class F1DataCleaner:
                     self.drivers[res[0]].variance = self.k_rookie_variance
             if self.drivers[res[0]].constructor is not self.constructors[res[1]]:
                 self.drivers[res[0]].constructor = self.constructors[res[1]]
+                self.drivers[res[0]].variance *= self.k_driver_const_change_variance_multiplier
 
     def addNewDriver(self, did, name, cid):
         self.drivers[did] = Driver(name, self.constructors[cid])
@@ -224,9 +229,9 @@ class F1DataCleaner:
 
     def _updateModels(self, pwr_changes, circuitId):
         for did, err in pwr_changes.items():
-            self.drivers[did].pwr += err * self.k_driver_change
-            self.drivers[did].constructor.pwr += err * self.k_const_change
-            self.drivers[did].constructor.engine.pwr += err * self.k_engine_change
+            self.drivers[did].pwr += err * self.k_driver_change * self.drivers[did].variance
+            self.drivers[did].constructor.pwr += err * self.k_const_change * self.drivers[did].constructor.variance
+            self.drivers[did].constructor.engine.pwr += err * self.k_engine_change * self.drivers[did].constructor.engine.variance
             self.drivers[did].trackpwr[circuitId] += err * self.k_driver_change * self.k_track_change_multiplier
             self.drivers[did].constructor.trackpwr[circuitId] += err * self.k_const_change * self.k_track_change_multiplier
             self.drivers[did].constructor.engine.trackpwr[circuitId] += err * self.k_engine_change * self.k_track_change_multiplier

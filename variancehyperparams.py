@@ -6,13 +6,13 @@ import numpy as np
 cleaner = None
 for i in range(5):
     print("i=" + str(i))
-    variance_regress = 0.80 + 0.05*i
+    variance_regress = 0.90 + 0.05*i
     for m in range(5):
         print("m=" + str(m))
-        with open('data/trained_cleaner.pickle', 'rb') as handle:
+        with open('out/trained_cleaner.pickle', 'rb') as handle:
             cleaner = pickle.load(handle)
         cleaner.k_variance_multiplier_end = variance_regress
-        cleaner.k_rookie_variance = 0.5
+        cleaner.k_rookie_variance = 1
         cleaner.k_driver_variance_change = 0.1 + 0.05*m
         cleaner.k_const_variance_change = 0.05 + 0.05*m
         cleaner.k_engine_variance_change = 0.02 + 0.02*m
