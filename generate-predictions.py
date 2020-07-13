@@ -64,7 +64,7 @@ cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructors
 
 # Run gradient descent
 alpha = 0.18
-stop = 0.021
+stop = 0.016
 entries, errors, results = cleaner.constructDataset()
 grad = gradient(entries, errors)
 
