@@ -7,7 +7,7 @@ class Engine:
         self.name = name
         self.trackpwr = {}
         self.pwr = 0
-        self.variance = 0.3
+        self.variance = 0.7
 
 class Constructor:
     """The model for a F1 constructor.
@@ -21,7 +21,7 @@ class Constructor:
         self.trackpwr = {}
         self.pwr = 0
         self.engine = engine
-        self.variance = 0.3
+        self.variance = 0.7
 
 class Driver:
     """The model for a F1 driver.
@@ -36,7 +36,7 @@ class Driver:
         self.constructor = constructor
         #Rookie/new driver: special value?
         self.pwr = 0
-        self.variance = 0.3
+        self.variance = 0.7
     def changeConstrucutor(self, constructor):
         self.constructor = constructor
         #change power levels?
