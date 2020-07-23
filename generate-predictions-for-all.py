@@ -12,7 +12,7 @@ def getColor(constructor):
         "Racing Point": "#F596C8",
         "Williams": "#0082FA",
         "Renault": "#FFF500",
-        "Toro Rosso": "#C8C8C8",
+        "AlphaTauri": "#C8C8C8",
         "Haas F1 Team": "#787878",
         "McLaren": "#FF8700",
         "Alfa Romeo": "#960000"
@@ -37,8 +37,8 @@ driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
     if int(did) == -1:  # Cases when driver doesn't exist in data
-        driversToWrite[int(did)]["name"] = "Nicholas Latifi"
-        cleaner.addNewDriver(int(did), "Nicholas Latifi", cid)
+        driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
+        cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
     else:
         driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":

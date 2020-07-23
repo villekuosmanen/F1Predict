@@ -20,7 +20,7 @@ def getColor(constructor):
         "Racing Point": "#F596C8",
         "Williams": "#0082FA",
         "Renault": "#FFF500",
-        "Toro Rosso": "#C8C8C8",
+        "AlphaTauri": "#C8C8C8",
         "Haas F1 Team": "#787878",
         "McLaren": "#FF8700",
         "Alfa Romeo": "#960000"
@@ -64,10 +64,12 @@ cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructors
 
 # Run gradient descent
 alpha = 0.18
-stop = 0.02
+stop = 0.016
 entries, errors, results = cleaner.constructDataset()
 grad = gradient(entries, errors)
-while np.linalg.norm(grad) > stop:
+
+i = 0
+while np.linalg.norm(grad) > stop and i < 40:
     # Move in the direction of the gradient
     # N.B. this is point-wise multiplication, not a dot product
     cleaner.theta = cleaner.theta - grad*alpha
@@ -75,6 +77,7 @@ while np.linalg.norm(grad) > stop:
     print(mae)
     entries, errors, results = cleaner.constructDataset()
     grad = gradient(entries, errors)
+    i += 1
 
 print("Gradient descent finished. MAE="+str(mae))
 print(cleaner.theta)
@@ -99,8 +102,8 @@ driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
     if int(did) == -1:  # Cases when driver doesn't exist in data
-        driversToWrite[int(did)]["name"] = "Nicholas Latifi"
-        cleaner.addNewDriver(int(did), "Nicholas Latifi", cid)
+        driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
+        cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
     else:
         driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
