@@ -5,6 +5,11 @@ RETIREMENT_PENALTY = -0.8
 FINISHING_BONUS = 0.1
 ROOKIE_DRIVER_RATING = 1800
 
+
+DRIVER_WEIGHTING = 0.2
+CONSTRUCTOR_WEIGHTING = 0.7
+ENGINE_WEIGHTING = 0.1
+
 from python.f1Models import Engine, Constructor
 
 class EloDriver:
@@ -13,7 +18,7 @@ class EloDriver:
         self.trackRatings = {}
         self.constructor = constructor
         self.rating = 2200  # Default rating
-    def changeConstrucutor(self, constructor):
+    def changeConstructor(self, constructor): # Spelling mistake
         self.constructor = constructor
 
 class EloRaceModel:
@@ -22,12 +27,12 @@ class EloRaceModel:
         # TODO make it cover not only drivers
         self.constructors = constructors
         self.engines = engines
-
         self.tracks = tracks
 
     def getGaElo(self, driverId, gridPosition, trackId):
-        gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition)
-        return self.drivers[driverId].rating + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+        gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition) 
+
+        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGridAdjustment(self, gridPosition):
         return (10.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
@@ -38,6 +43,27 @@ class EloRaceModel:
 
     def adjustEloRating(self, driverId, adjustment):
         self.drivers[driverId].rating += (adjustment * K_FACTOR) # TODO check if this is correct
+
+    def adjustEloRatingConstructor(self, constructor, adjustment):
+        constructor.rating += (adjustment * K_FACTOR) # TODO check if this is correct
+
+    def adjustEloRatingEngine(self, engine, adjustment):
+        engine.rating += (adjustment * K_FACTOR) # TODO check if this is correct
+        
+class EloConstructor:
+    def __init__(self, name, engine):
+        self.name = name
+        self.engine = engine
+        self.rating = 2200  # Default rating
+
+
+
+class EloEngine:
+    def __init__(self, name):
+        self.name = name
+        self.rating = 2200 # Default rating
+        
+
 
 class EloRaceModelGenerator:
     def __init__(self, seasonsData, raceResultsData, driversData, constructorsData, enginesData):
@@ -115,7 +141,13 @@ class EloRaceModelGenerator:
                     for driverId in driverIds:
                         if results[driverId] is None:
                             self.model.adjustEloRating(driverId, RETIREMENT_PENALTY)
-                        self.model.adjustEloRating(driverId, eloAdjustments[driverId] + FINISHING_BONUS)
+                        self.model.adjustEloRating(driverId, eloAdjustments[0][driverId] + FINISHING_BONUS)
+
+                    for constructor in eloAdjustments[1]:
+                        self.model.adjustEloRatingConstructor(constructor, eloAdjustments[1][constructor] + FINISHING_BONUS)
+                    
+                    for engine in eloAdjustments[2]:
+                        self.model.adjustEloRatingConstructor(engine, eloAdjustments[2][engine] + FINISHING_BONUS)
                     # TODO Adjust circuit ALPHA
         return predictions
 
@@ -129,9 +161,9 @@ class EloRaceModelGenerator:
         for cId, engineId in season.constructorEngines.items():
             # Check that the constructor and engine exist
             if engineId not in self.model.engines:
-                self.model.engines[engineId] = Engine(self.enginesData[engineId])
+                self.model.engines[engineId] = EloEngine(self.enginesData[engineId])
             if cId not in self.model.constructors:
-                self.model.constructors[cId] = Constructor(self.constructorsData[cId], None)
+                self.model.constructors[cId] = EloConstructor(self.constructorsData[cId], None)
             # Assign it its engine
             self.model.constructors[cId].engine = self.model.engines[engineId]
 
@@ -157,17 +189,36 @@ class EloRaceModelGenerator:
             self.model.tracks[circuitId] = 1
 
     def _calculateEloAdjustments(self, driverIds, gaElos, results):
-        eloAdjustments = {}
+        driverAdjustments = {}
+        engineAdjustments = {}
+        constructorAdjustments = {}
         for i in range(len(driverIds)):
             for k in range(i+1, len(driverIds)):
-                if driverIds[i] not in eloAdjustments:
-                    eloAdjustments[driverIds[i]] = 0
-                if driverIds[k] not in eloAdjustments:
-                    eloAdjustments[driverIds[k]] = 0
+                if driverIds[i] not in driverAdjustments:
+                    driverAdjustments[driverIds[i]] = 0
+                if driverIds[k] not in driverAdjustments:
+                    driverAdjustments[driverIds[k]] = 0
+
+                if self.model.drivers[driverIds[i]].constructor not in constructorAdjustments:
+                    constructorAdjustments[self.model.drivers[driverIds[i]].constructor] = 0
+                if self.model.drivers[driverIds[k]].constructor not in constructorAdjustments:
+                    constructorAdjustments[self.model.drivers[driverIds[k]].constructor] = 0
+
+                if self.model.drivers[driverIds[i]].constructor.engine not in engineAdjustments:
+                    engineAdjustments[self.model.drivers[driverIds[i]].constructor.engine] = 0
+                if self.model.drivers[driverIds[k]].constructor.engine not in engineAdjustments:
+                    engineAdjustments[self.model.drivers[driverIds[k]].constructor.engine] = 0
+
                 if results[driverIds[i]] is not None and results[driverIds[k]] is not None:
                     headToHeadResult = 1 if results[driverIds[i]] < results[driverIds[k]] else 0
                     expectedScore = self.model.getExpectedScore(gaElos[driverIds[i]], gaElos[driverIds[k]])
-                    eloAdjustments[driverIds[i]] += headToHeadResult - expectedScore
-                    eloAdjustments[driverIds[k]] += expectedScore - headToHeadResult
-        return eloAdjustments
-    
+                    driverAdjustments[driverIds[i]] += headToHeadResult - expectedScore
+                    driverAdjustments[driverIds[k]] += expectedScore - headToHeadResult
+
+                    constructorAdjustments[self.model.drivers[driverIds[i]].constructor] += headToHeadResult - expectedScore
+                    constructorAdjustments[self.model.drivers[driverIds[k]].constructor] += expectedScore - headToHeadResult
+
+                    engineAdjustments[self.model.drivers[driverIds[i]].constructor.engine] += headToHeadResult - expectedScore
+                    engineAdjustments[self.model.drivers[driverIds[k]].constructor.engine] += expectedScore - headToHeadResult
+
+        return (driverAdjustments, constructorAdjustments, engineAdjustments)
