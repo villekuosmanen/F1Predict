@@ -37,8 +37,8 @@ driversToWrite = {}
 for did, cid in newDrivers.items():
     driversToWrite[int(did)] = {}
     if int(did) == -1:  # Cases when driver doesn't exist in data
-        driversToWrite[int(did)]["name"] = "Nicholas Latifi"
-        cleaner.addNewDriver(int(did), "Nicholas Latifi", cid)
+        driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
+        cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
     else:
         driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
