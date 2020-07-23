@@ -37,6 +37,6 @@ class Driver:
         #Rookie/new driver: special value?
         self.pwr = 0
         self.variance = 0.3
-    def changeConstrucutor(self, constructor):
+    def changeConstructor(self, constructor):
         self.constructor = constructor
         #change power levels?
