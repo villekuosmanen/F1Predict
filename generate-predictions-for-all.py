@@ -4,6 +4,9 @@ import json
 
 from python import *
 
+# This file generates predictions for all upcoming qualifyings
+# It can be useful for checking how the predictions change based on track
+
 def getColor(constructor):
     return {
         "Mercedes": "#00D2BE",
@@ -96,7 +99,11 @@ for entry in futureRaces:
         participant["pwr"] = linearRegResults[index]
         participant["driv_var"] = cleaner.drivers[did].variance
         participant["const_var"] = cleaner.drivers[did].constructor.variance
+        participant["const_id"] = list(cleaner.constructors.keys())[
+            list(cleaner.constructors.values()).index(cleaner.drivers[did].constructor)]
         participant["eng_var"] = cleaner.drivers[did].constructor.engine.variance
+        participant["eng_id"] = list(cleaner.engines.keys())[
+            list(cleaner.engines.values()).index(cleaner.drivers[did].constructor.engine)]
         newDrivers[did] = participant
 
         driverResults[int(did)] = {}

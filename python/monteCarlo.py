@@ -44,13 +44,25 @@ def predictQualiResults(circuitId, participants):
 
 def runQualifying(circuitId, participants):
     scores = {}
+    constructorRands = {}
+    engineRands = {}
     for did, driver in participants.items():
         did = int(did)
         score = None
 
         rand = random.normalvariate(0, driver["driv_var"])
-        rand += random.normalvariate(0, driver["const_var"])
-        rand += random.normalvariate(0, driver["eng_var"])
+        if driver["const_id"] in constructorRands:
+            rand += constructorRands[driver["const_id"]]
+        else:
+            constRand = random.normalvariate(0, driver["const_var"])
+            rand += constRand
+            constructorRands[driver["const_id"]] = constRand
+        if driver["eng_id"] in engineRands:
+            rand += engineRands[driver["eng_id"]]
+        else:
+            engineRand = random.normalvariate(0, driver["eng_var"])
+            rand += engineRand
+            engineRands[driver["eng_id"]] = engineRand
         rand *= 0.33
         mistakeOdds = random.random()
         if mistakeOdds < 0.031:    #Experimentally validated!
