@@ -34,6 +34,11 @@ class EloRaceModel:
 
         return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
+    def getGaEloWithTrackAlpha(self, driverId, gridPosition, trackId, alphaAdjustment):
+        gridAdjustment = (self.tracks[trackId] + alphaAdjustment) * self.getGridAdjustment(gridPosition) 
+
+        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+
     def getGridAdjustment(self, gridPosition):
         return (10.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
 
@@ -93,15 +98,39 @@ class EloRaceModelGenerator:
                     self._addNewDriversAndConstructors(resultsForRace, year)
                     self._addNewTrack(data.circuitId)
 
-                    results = {}
-                    gaElos = {}
-                    for index, res in enumerate(resultsForRace):
-                        results[res["driverId"]] = res["position"]
-                        gaElos[res["driverId"]] = self.model.getGaElo(res["driverId"], res["grid"], data.circuitId)
+                  #  results = {}
+                    #gaElos = {}
+                    driverIds = [x["driverId"] for x in resultsForRace]
+                    eloAdjustments = ()
+                    eloAdjustmentsSum = 0
+                    setEloAdjustmentsSum = False
+                    for alphaAdjustment in range(-0.25, 0.26, 0.25):
+                        results = {}
+                        gaElos = {}
+                        for index, res in enumerate(resultsForRace):
+                            results[res["driverId"]] = res["position"]
+                            gaElos[res["driverId"]] = self.model.getGaEloWithTrackAlpha(res["driverId"], res["grid"], data.circuitId, alphaAdjustment)
+                        curEloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                        curEloAdjustmentsSum = 0
+                        for i in range(len(curEloAdjustments[0])):
+                            curEloAdjustmentsSum += curEloAdjustments[0][i]
+                        for i in range(len(curEloAdjustments[1])):
+                            curEloAdjustmentsSum += curEloAdjustments[1][i]
+                        for i in range(len(curEloAdjustments[2])):
+                            curEloAdjustmentsSum += curEloAdjustments[2][i]
+
+                        if curEloAdjustmentsSum < eloAdjustmentsSum or not setEloAdjustmentsSum:
+                            setEloAdjustmentsSum = True
+                            eloAdjustmentsSum = curEloAdjustmentsSum
+                            eloAdjustments = curEloAdjustments
+
+                    #for index, res in enumerate(resultsForRace):
+                      #  results[res["driverId"]] = res["position"]
+                      #  gaElos[res["driverId"]] = self.model.getGaElo(res["driverId"], res["grid"], data.circuitId)
 
                     # For each matchup, calculate expected score and real score. Put results to special data structure
-                    driverIds = [x["driverId"] for x in resultsForRace]
-                    eloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                  #  driverIds = [x["driverId"] for x in resultsForRace]
+                    #eloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
                     for driverId in driverIds:
                         if results[driverId] is None:
                             self.model.adjustEloRating(driverId, RETIREMENT_PENALTY)
