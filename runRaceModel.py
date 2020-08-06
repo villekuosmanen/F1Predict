@@ -26,12 +26,24 @@ with open('data/enginesData.pickle', 'rb') as handle:
     enginesData = pickle.load(handle)
 
 generator = EloRaceModelGenerator(seasonsData, raceResultsData, driversData, constructorsData, enginesData)
+predictions = generator.generateModel()
 predictions = generator.generatePredictions()
 raceModel = generator.getModel()
 
 # for driver in raceModel.drivers.values():
 #     print(driver)
 #     print("{}: {}".format(driver.name, driver.rating))
+
+for constructor in raceModel.constructors.values():
+    print("Constructor {}: {}".format(constructor.name, constructor.rating))
+
+print()
+
+for engine in raceModel.engines.values():
+    print("Engine {}: {}".format(engine.name, engine.rating))
+
+for trackId, alpha in raceModel.tracks.items():
+    print("{}: {}".format(trackId, alpha))
 print("Predictions:")
 for pred in predictions[-5:]:
     for driverId in pred:
