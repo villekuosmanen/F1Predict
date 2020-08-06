@@ -1,7 +1,7 @@
 import statistics
 import math
 
-GRID_ADJUSTMENT_COEFFICIENT = 40
+GRID_ADJUSTMENT_COEFFICIENT = 20
 GA_ELO_INTERCEPT_COEFFICIENT = 0
 K_FACTOR = 4
 RETIREMENT_PENALTY = -0.5
@@ -35,7 +35,9 @@ class EloRaceModel:
     def getGaElo(self, driverId, gridPosition, trackId):
         gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition)
 
-        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+        return (self.drivers[driverId].rating * DRIVER_WEIGHTING) + \
+            (self.drivers[driverId].constructor.rating * CONSTRUCTOR_WEIGHTING) + \
+            (self.drivers[driverId].constructor.engine.rating * ENGINE_WEIGHTING) + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGaEloWithTrackAlpha(self, driverId, gridPosition, trackId, alphaAdjustment):
         gridAdjustment = (self.tracks[trackId] * alphaAdjustment) * self.getGridAdjustment(gridPosition)
@@ -43,7 +45,7 @@ class EloRaceModel:
         return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGridAdjustment(self, gridPosition):
-        return (8 - math.sqrt(gridPosition) * 3) * GRID_ADJUSTMENT_COEFFICIENT
+        return (9.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
 
     def getExpectedScore(self, a, b):
         '''Returns a's expected score against b. A float value between 0 and 1'''
@@ -257,7 +259,7 @@ class EloRaceModelGenerator:
         eloAdjustments = ()
         eloAdjustmentsSum = None
         bestAdjustment = 0
-        adjustments = [0.75, 0.8125, 0.875, 0.9375, 1, 1.125, 1.25, 1.375, 1.5]
+        adjustments = [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1]
         for alphaAdjustment in adjustments:
             results = {}
             gaElos = {}
