@@ -73,11 +73,11 @@ for entry in futureRaces:
 
     for did, cid in newDrivers.items():
         if circuit not in cleaner.drivers[did].trackpwr:
-            cleaner.drivers[did].trackpwr[circuit] = 0 #TODO maybe change defaults
+            cleaner.drivers[did].trackpwr[circuit] = 0
         if circuit not in cleaner.drivers[did].constructor.trackpwr:
-            cleaner.drivers[did].constructor.trackpwr[circuit] = 0 #TODO maybe change defaults
+            cleaner.drivers[did].constructor.trackpwr[circuit] = 0
         if circuit not in cleaner.drivers[did].constructor.engine.trackpwr:
-            cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0 #TODO maybe change defaults
+            cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0
         
         entry = [
             cleaner.drivers[did].pwr,
@@ -95,17 +95,6 @@ for entry in futureRaces:
     driverResults = {} # {did: {position: amount}}
     orderedResults = [] # [(did, prediction) ...]
     for index, (did, cid) in enumerate(newDrivers.items()):
-        participant = {}
-        participant["pwr"] = linearRegResults[index]
-        participant["driv_var"] = cleaner.drivers[did].variance
-        participant["const_var"] = cleaner.drivers[did].constructor.variance
-        participant["const_id"] = list(cleaner.constructors.keys())[
-            list(cleaner.constructors.values()).index(cleaner.drivers[did].constructor)]
-        participant["eng_var"] = cleaner.drivers[did].constructor.engine.variance
-        participant["eng_id"] = list(cleaner.engines.keys())[
-            list(cleaner.engines.values()).index(cleaner.drivers[did].constructor.engine)]
-        newDrivers[did] = participant
-
         driverResults[int(did)] = {}
         orderedResults.append((did, linearRegResults[index]))
         
@@ -113,7 +102,7 @@ for entry in futureRaces:
         outFile["order"] = [a for (a, b) in orderedResults]
         
     for i in range(10000):
-        scoreList = predictQualiResults(circuit, newDrivers)
+        scoreList = predictQualiResults(circuit, newDrivers, cleaner)
         for i, drivRes in enumerate(scoreList):
             if i not in driverResults[drivRes[0]]:
                 driverResults[drivRes[0]][i] = 0
