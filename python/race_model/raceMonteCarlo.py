@@ -24,7 +24,10 @@ def simulateRace(raceModel, grid, circuit):
     gaElos = []
     for gridPosition, did in enumerate(grid):
         gaElo = raceModel.getGaElo(did, gridPosition, circuit)
-        gaElo += random.normalvariate(0, RANDOM_STANDARD_DEVIATION)
+
+        randCeck = random.random()
+        if randCeck > 0.75:
+            gaElo += random.uniform(-2*RANDOM_STANDARD_DEVIATION, RANDOM_STANDARD_DEVIATION)
         gaElos.append((did, gaElo))
     gaElos.sort(key=lambda x: x[1], reverse=True)
     return [x[0] for x in gaElos]
