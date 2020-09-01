@@ -6,9 +6,10 @@ FINISHING_BONUS = 0.1
 ROOKIE_DRIVER_RATING = 1800
 
 
-DRIVER_WEIGHTING = 0.2
-CONSTRUCTOR_WEIGHTING = 0.7
-ENGINE_WEIGHTING = 0.1
+DRIVER_WEIGHTING = 0.19
+CONSTRUCTOR_WEIGHTING = 0.69
+ENGINE_WEIGHTING = 0.09
+TRACK_WEIGHTING = 0.03
 
 from python.f1Models import Engine, Constructor
 
@@ -32,7 +33,7 @@ class EloRaceModel:
     def getGaElo(self, driverId, gridPosition, trackId):
         gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition) 
 
-        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + (self.drivers[driverId].trackRatings[trackId]*TRACK_WEIGHTING) + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGridAdjustment(self, gridPosition):
         return (10.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
@@ -41,29 +42,40 @@ class EloRaceModel:
         '''Returns a's expected score against b. A float value between 0 and 1'''
         return 1 / (1 + 10 ** ((b - a) / 400))
 
-    def adjustEloRating(self, driverId, adjustment):
-        self.drivers[driverId].rating += (adjustment * K_FACTOR) # TODO check if this is correct
+    def adjustEloRating(self, driverId, adjustment, trackId):
+        self.drivers[driverId].rating += (adjustment * K_FACTOR)  # TODO check if this is correct
+        self.drivers[driverId].trackRatings[trackId] += (adjustment * K_FACTOR)
 
     def adjustEloRatingConstructor(self, constructor, adjustment):
         constructor.rating += (adjustment * K_FACTOR) # TODO check if this is correct
 
     def adjustEloRatingEngine(self, engine, adjustment):
-        engine.rating += (adjustment * K_FACTOR) # TODO check if this is correct
+        engine.rating += (adjustment * K_FACTOR)  # TODO check if this is correct
+
+    def _addNewTracksToEntities(self, driverId, trackId):
+        if trackId not in self.drivers[driverId].trackRatings[trackId]:
+            # TODO maybe change defaults
+            self.drivers[driverId].trackRatings[trackId] = 2200
+        if trackId not in self.drivers[driverId].constructor.trackRatings:
+            # TODO maybe change defaults
+            self.drivers[driverId].constructor.trackRatings[trackId] = 2200
+        if trackId not in self.drivers[driverId].constructor.engine.trackRatings:
+            # TODO maybe change defaults
+            self.drivers[driverId].constructor.engine.trackRatings[trackId] = 2200
+        
+    
         
 class EloConstructor:
     def __init__(self, name, engine):
         self.name = name
         self.engine = engine
-        self.rating = 2200  # Default rating
-
-
+        self.trackRatings = {}
 
 class EloEngine:
     def __init__(self, name):
         self.name = name
-        self.rating = 2200 # Default rating
+        self.trackRatings = {}
         
-
 
 class EloRaceModelGenerator:
     def __init__(self, seasonsData, raceResultsData, driversData, constructorsData, enginesData):
@@ -91,7 +103,8 @@ class EloRaceModelGenerator:
                 if raceId in self.raceResultsData:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
-                    self._addNewTrack(data.circuitId)
+                    # self._addNewTrack(data.circuitId)
+                    self._addNewTracksToEntities(data.trackId)
 
                     results = {}
                     gaElos = {}
