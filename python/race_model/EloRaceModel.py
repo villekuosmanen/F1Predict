@@ -53,7 +53,7 @@ class EloRaceModel:
         engine.rating += (adjustment * K_FACTOR)  # TODO check if this is correct
 
     def _addNewTracksToEntities(self, driverId, trackId):
-        if trackId not in self.drivers[driverId].trackRatings[trackId]:
+        if trackId not in self.drivers[driverId].trackRatings:
             # TODO maybe change defaults
             self.drivers[driverId].trackRatings[trackId] = 2200
         if trackId not in self.drivers[driverId].constructor.trackRatings:
@@ -69,6 +69,7 @@ class EloConstructor:
     def __init__(self, name, engine):
         self.name = name
         self.engine = engine
+        self.rating = 2200
         self.trackRatings = {}
 
 class EloEngine:
@@ -103,7 +104,7 @@ class EloRaceModelGenerator:
                 if raceId in self.raceResultsData:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
-                    # self._addNewTrack(data.circuitId)
+                    self._addNewTrack(data.circuitId)
                     self._addNewTracksToEntities(data.trackId)
 
                     results = {}
