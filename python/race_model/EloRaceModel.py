@@ -73,7 +73,6 @@ class EloRaceModel:
         if trackId not in self.drivers[driverId].constructor.engine.trackRatings:
             # TODO maybe change defaults
             self.drivers[driverId].constructor.engine.trackRatings[trackId] = 2200
-        engine.rating += (adjustment * K_FACTOR)
 
     def adjustCircuitAplha(self, alphaAdjustment, trackId):
         self.tracks[trackId] *= alphaAdjustment
