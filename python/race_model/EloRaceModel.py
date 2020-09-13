@@ -1,10 +1,12 @@
-GRID_ADJUSTMENT_COEFFICIENT = 40
+import statistics
+import math
+
+GRID_ADJUSTMENT_COEFFICIENT = 20
 GA_ELO_INTERCEPT_COEFFICIENT = 0
-K_FACTOR = 8
-RETIREMENT_PENALTY = -0.8
+K_FACTOR = 4
+RETIREMENT_PENALTY = -0.5
 FINISHING_BONUS = 0.1
 ROOKIE_DRIVER_RATING = 1800
-
 
 DRIVER_WEIGHTING = 0.19
 CONSTRUCTOR_WEIGHTING = 0.69
@@ -19,8 +21,10 @@ class EloDriver:
         self.trackRatings = {}
         self.constructor = constructor
         self.rating = 2200  # Default rating
-    def changeConstructor(self, constructor): # Spelling mistake
+
+    def changeConstructor(self, constructor):  # Spelling mistake
         self.constructor = constructor
+
 
 class EloRaceModel:
     def __init__(self, drivers, constructors, engines, tracks):
@@ -31,23 +35,30 @@ class EloRaceModel:
         self.tracks = tracks
 
     def getGaElo(self, driverId, gridPosition, trackId):
-        gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition) 
+        gridAdjustment = self.tracks[trackId] * self.getGridAdjustment(gridPosition)
+
+        return (self.drivers[driverId].rating * DRIVER_WEIGHTING) + \
+            (self.drivers[driverId].constructor.rating * CONSTRUCTOR_WEIGHTING) + \
+            (self.drivers[driverId].constructor.engine.rating * ENGINE_WEIGHTING) + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+
+    def getGaEloWithTrackAlpha(self, driverId, gridPosition, trackId, alphaAdjustment):
+        gridAdjustment = (self.tracks[trackId] * alphaAdjustment) * self.getGridAdjustment(gridPosition)
 
         return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + (self.drivers[driverId].trackRatings[trackId]*TRACK_WEIGHTING) + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGridAdjustment(self, gridPosition):
-        return (10.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
+        return (9.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
 
     def getExpectedScore(self, a, b):
         '''Returns a's expected score against b. A float value between 0 and 1'''
         return 1 / (1 + 10 ** ((b - a) / 400))
 
     def adjustEloRating(self, driverId, adjustment, trackId):
-        self.drivers[driverId].rating += (adjustment * K_FACTOR)  # TODO check if this is correct
+        self.drivers[driverId].rating += (adjustment * K_FACTOR)
         self.drivers[driverId].trackRatings[trackId] += (adjustment * K_FACTOR)
 
     def adjustEloRatingConstructor(self, constructor, adjustment):
-        constructor.rating += (adjustment * K_FACTOR) # TODO check if this is correct
+        constructor.rating += (adjustment * K_FACTOR)
 
     def adjustEloRatingEngine(self, engine, adjustment):
         engine.rating += (adjustment * K_FACTOR)  # TODO check if this is correct
@@ -62,21 +73,23 @@ class EloRaceModel:
         if trackId not in self.drivers[driverId].constructor.engine.trackRatings:
             # TODO maybe change defaults
             self.drivers[driverId].constructor.engine.trackRatings[trackId] = 2200
-        
-    
-        
+        engine.rating += (adjustment * K_FACTOR)
+
+    def adjustCircuitAplha(self, alphaAdjustment, trackId):
+        self.tracks[trackId] *= alphaAdjustment
+
 class EloConstructor:
     def __init__(self, name, engine):
         self.name = name
         self.engine = engine
-        self.rating = 2200
+        self.rating = 2200 # Default rating
         self.trackRatings = {}
 
 class EloEngine:
     def __init__(self, name):
         self.name = name
         self.trackRatings = {}
-        
+        self.rating = 2200  # Default rating
 
 class EloRaceModelGenerator:
     def __init__(self, seasonsData, raceResultsData, driversData, constructorsData, enginesData):
@@ -101,27 +114,36 @@ class EloRaceModelGenerator:
 
             for raceId, data in racesAsList:
                 # A single race
-                if raceId in self.raceResultsData:
+                if raceId in self.raceResultsData and self.raceResultsData[raceId]:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
                     self._addNewTrack(data.circuitId)
                     self._addNewTracksToEntities(data.trackId)
 
                     results = {}
-                    gaElos = {}
                     for index, res in enumerate(resultsForRace):
                         results[res["driverId"]] = res["position"]
-                        gaElos[res["driverId"]] = self.model.getGaElo(res["driverId"], res["grid"], data.circuitId)
-
-                    # For each matchup, calculate expected score and real score. Put results to special data structure
                     driverIds = [x["driverId"] for x in resultsForRace]
-                    eloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                    eloAdjustments, alphaAdjustment = self._calculateTrackAlphaAdjustmentAndBestEloAdjustments(
+                        driverIds, resultsForRace, data.circuitId)
+
                     for driverId in driverIds:
                         if results[driverId] is None:
-                            self.model.adjustEloRating(driverId, RETIREMENT_PENALTY)
-                        self.model.adjustEloRating(driverId, eloAdjustments[driverId] + FINISHING_BONUS)
-                    # TODO Adjust circuit ALPHA
-        
+                            self.model.adjustEloRating(
+                                driverId, RETIREMENT_PENALTY)
+                        self.model.adjustEloRating(
+                            driverId, eloAdjustments[0][driverId] + FINISHING_BONUS)
+
+                    for constructor in eloAdjustments[1]:
+                        self.model.adjustEloRatingConstructor(
+                            constructor, eloAdjustments[1][constructor])
+
+                    for engine in eloAdjustments[2]:
+                        self.model.adjustEloRatingConstructor(
+                            engine, eloAdjustments[2][engine])
+                    
+                    self.model.adjustCircuitAplha(alphaAdjustment, data.circuitId)
+
     def generatePredictions(self):
         self.model = EloRaceModel({}, {}, {}, {})
         predictions = []
@@ -132,7 +154,7 @@ class EloRaceModelGenerator:
 
             for raceId, data in racesAsList:
                 # A single race
-                if raceId in self.raceResultsData:
+                if raceId in self.raceResultsData and self.raceResultsData[raceId]:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
                     self._addNewTrack(data.circuitId)
@@ -141,28 +163,37 @@ class EloRaceModelGenerator:
                     gaElos = {}
                     for index, res in enumerate(resultsForRace):
                         results[res["driverId"]] = res["position"]
-                        gaElos[res["driverId"]] = self.model.getGaElo(res["driverId"], res["grid"], data.circuitId)
+                        gaElos[res["driverId"]] = self.model.getGaElo(
+                            res["driverId"], res["grid"], data.circuitId)
 
                     # Generate predictions:
-                    sortedGaElos = [(driverId, gaElo) for (driverId, gaElo) in gaElos.items()]
+                    sortedGaElos = [(driverId, gaElo)
+                                    for (driverId, gaElo) in gaElos.items()]
                     sortedGaElos.sort(key=lambda x: x[1], reverse=True)
                     if sortedGaElos:
                         predictions.append([x[0] for x in sortedGaElos])
 
-                    # For each matchup, calculate expected score and real score. Put results to special data structure
+                    # After predictions have been generated, we can do the alpha adjustment
                     driverIds = [x["driverId"] for x in resultsForRace]
-                    eloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                    eloAdjustments, alphaAdjustment = self._calculateTrackAlphaAdjustmentAndBestEloAdjustments(
+                        driverIds, resultsForRace, data.circuitId)
+
                     for driverId in driverIds:
                         if results[driverId] is None:
-                            self.model.adjustEloRating(driverId, RETIREMENT_PENALTY)
-                        self.model.adjustEloRating(driverId, eloAdjustments[0][driverId] + FINISHING_BONUS)
+                            self.model.adjustEloRating(
+                                driverId, RETIREMENT_PENALTY)
+                        self.model.adjustEloRating(
+                            driverId, eloAdjustments[0][driverId] + FINISHING_BONUS)
 
                     for constructor in eloAdjustments[1]:
-                        self.model.adjustEloRatingConstructor(constructor, eloAdjustments[1][constructor] + FINISHING_BONUS)
-                    
+                        self.model.adjustEloRatingConstructor(
+                            constructor, eloAdjustments[1][constructor])
+
                     for engine in eloAdjustments[2]:
-                        self.model.adjustEloRatingConstructor(engine, eloAdjustments[2][engine] + FINISHING_BONUS)
-                    # TODO Adjust circuit ALPHA
+                        self.model.adjustEloRatingConstructor(
+                            engine, eloAdjustments[2][engine])
+                    
+                    self.model.adjustCircuitAplha(alphaAdjustment, data.circuitId)
         return predictions
 
     def _updateModelsForYear(self, season):
@@ -175,9 +206,11 @@ class EloRaceModelGenerator:
         for cId, engineId in season.constructorEngines.items():
             # Check that the constructor and engine exist
             if engineId not in self.model.engines:
-                self.model.engines[engineId] = EloEngine(self.enginesData[engineId])
+                self.model.engines[engineId] = EloEngine(
+                    self.enginesData[engineId])
             if cId not in self.model.constructors:
-                self.model.constructors[cId] = EloConstructor(self.constructorsData[cId], None)
+                self.model.constructors[cId] = EloConstructor(
+                    self.constructorsData[cId], None)
             # Assign it its engine
             self.model.constructors[cId].engine = self.model.engines[engineId]
 
@@ -236,3 +269,28 @@ class EloRaceModelGenerator:
                     engineAdjustments[self.model.drivers[driverIds[k]].constructor.engine] += expectedScore - headToHeadResult
 
         return (driverAdjustments, constructorAdjustments, engineAdjustments)
+
+    def _calculateTrackAlphaAdjustmentAndBestEloAdjustments(self, driverIds, resultsForRace, circuitId):
+        eloAdjustments = ()
+        eloAdjustmentsSum = None
+        bestAdjustment = 0
+        adjustments = [0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.1]
+        for alphaAdjustment in adjustments:
+            results = {}
+            gaElos = {}
+            for index, res in enumerate(resultsForRace):
+                results[res["driverId"]] = res["position"]
+                gaElos[res["driverId"]] = self.model.getGaEloWithTrackAlpha(
+                    res["driverId"], res["grid"], circuitId, alphaAdjustment)
+            curEloAdjustments = self._calculateEloAdjustments(
+                driverIds, gaElos, results)
+            curEloAdjustmentsSum = 0
+            curEloAdjustmentsSum += statistics.mean(map(abs, curEloAdjustments[0].values()))
+            curEloAdjustmentsSum += statistics.mean(map(abs, curEloAdjustments[1].values()))
+            curEloAdjustmentsSum += statistics.mean(map(abs, curEloAdjustments[2].values()))
+
+            if not eloAdjustmentsSum or curEloAdjustmentsSum < eloAdjustmentsSum:
+                eloAdjustmentsSum = curEloAdjustmentsSum
+                eloAdjustments = curEloAdjustments
+                bestAdjustment = alphaAdjustment
+        return eloAdjustments, bestAdjustment

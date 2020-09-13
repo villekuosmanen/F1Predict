@@ -1,12 +1,12 @@
-import math
 import copy
 import random
+import numpy as np
 
 #Participants: key-value mapping of driver id and power score
-def predictQualiResults(circuitId, participants):
+def predictQualiResults(circuitId, participants, model):
     editableParticipants = copy.deepcopy(participants)
     finalScores = []
-    scores = runQualifying(circuitId, editableParticipants)
+    scores = runQualifying(circuitId, editableParticipants, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
@@ -24,7 +24,7 @@ def predictQualiResults(circuitId, participants):
     finalScores = tempList + finalScores
 
     #Q2
-    scores = runQualifying(circuitId, editableParticipants)
+    scores = runQualifying(circuitId, editableParticipants, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
@@ -34,7 +34,7 @@ def predictQualiResults(circuitId, participants):
     finalScores = tempList + finalScores
 
     #Q3
-    scores = runQualifying(circuitId, editableParticipants)
+    scores = runQualifying(circuitId, editableParticipants, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
@@ -42,18 +42,36 @@ def predictQualiResults(circuitId, participants):
 
     return finalScores
 
-def runQualifying(circuitId, participants):
+def runQualifying(circuitId, participants, model):
     scores = {}
-    for did, driver in participants.items():
+    constructorRands = {}
+    engineRands = {}
+    for did in participants.keys():
         did = int(did)
-        score = None
 
-        rand = random.normalvariate(0, driver["driv_var"])
-        rand += random.normalvariate(0, driver["const_var"])
-        rand += random.normalvariate(0, driver["eng_var"])
-        rand *= 0.33
+        if model.drivers[did].constructor in constructorRands:
+            constRand = constructorRands[model.drivers[did].constructor]
+        else:
+            constRand = random.normalvariate(0, model.drivers[did].constructor.variance)
+            constructorRands[model.drivers[did].constructor] = constRand
+        if model.drivers[did].constructor.engine in engineRands:
+            engineRand = engineRands[model.drivers[did].constructor.engine]
+        else:
+            engineRand = random.normalvariate(0, model.drivers[did].constructor.engine.variance)
+            engineRands[model.drivers[did].constructor.engine] = engineRand
+
+        entry = [
+            model.drivers[did].pwr + random.normalvariate(0, model.drivers[did].variance) / 3,
+            model.drivers[did].constructor.pwr + constRand / 3, 
+            model.drivers[did].constructor.engine.pwr + engineRand / 3,
+            model.drivers[did].trackpwr[circuitId],
+            model.drivers[did].constructor.trackpwr[circuitId],
+            model.drivers[did].constructor.engine.trackpwr[circuitId],
+            1
+        ]
+        score = np.dot(entry, model.theta)
         mistakeOdds = random.random()
         if mistakeOdds < 0.031:    #Experimentally validated!
-            rand += 4
-        scores[did] = driver["pwr"] + rand
+            score += 4
+        scores[did] = score
     return scores

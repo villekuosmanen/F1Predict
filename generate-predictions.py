@@ -1,9 +1,11 @@
-from python import *
-
 import operator
 import pickle
 import numpy as np
 import json
+
+from python import *
+from python.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
+from python.race_model.raceMonteCarlo import simulateRace
 
 def gradient(x, err):
     grad = -(1.0/len(x)) * err @ x
@@ -50,6 +52,9 @@ with open('data/seasonsData.pickle', 'rb') as handle:
     
 with open('data/qualiResultsData.pickle', 'rb') as handle:
     qualiResultsData = pickle.load(handle)
+
+with open('data/raceResultsData.pickle', 'rb') as handle:
+    raceResultsData = pickle.load(handle)
     
 with open('data/driversData.pickle', 'rb') as handle:
     driversData = pickle.load(handle)
@@ -96,7 +101,14 @@ with open('out/trained_cleaner.pickle', 'wb+') as out:
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 newDrivers = {int(did): cid for did, cid in newDrivers.items()}
 
+print("Generating race model...")
+generator = EloRaceModelGenerator(seasonsData, raceResultsData, driversData, constructorsData, enginesData)
+predictions = generator.generateModel()
+predictions = generator.generatePredictions()
+raceModel = generator.getModel()
+
 outFile = {} # The object where we write output
+raceOutFile = {}
 
 driversToWrite = {}
 for did, cid in newDrivers.items():
@@ -104,13 +116,17 @@ for did, cid in newDrivers.items():
     if int(did) == -1:  # Cases when driver doesn't exist in data
         driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
         cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
+        raceModel.drivers[int(did)] = EloDriver("__PLACEHOLDER__", raceModel.constructors[int(cid)])
+        raceModel.drivers[int(did)].rating = ROOKIE_DRIVER_RATING
     else:
         driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
         cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
+        raceModel.drivers[int(did)].constructor = raceModel.constructors[int(cid)]
     driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
     driversToWrite[int(did)]["color"] = getColor(cleaner.drivers[int(did)].constructor.name)
 outFile["drivers"] = driversToWrite
+raceOutFile["drivers"] = driversToWrite
 
 raceId = -1
 with open('data/futureRaces.json', 'r') as handle:
@@ -128,18 +144,28 @@ with open(user_vars['predictions_output_folder'] + 'index.json', 'r+') as handle
     json.dump(data, handle, indent=4)
     handle.truncate()
 
+# Edit index file
+with open('{}races/index.json'.format(user_vars['predictions_output_folder']), 'r+') as handle:
+    data = json.load(handle)
+    data[str(futureRaces[0]["year"])][str(raceId)] = circuitName
+    handle.seek(0)        # <--- should reset file position to the beginning.
+    json.dump(data, handle, indent=4)
+    handle.truncate()
+
 outFile["name"] = circuitName
 outFile["year"] = futureRaces[0]["year"]
+raceOutFile["name"] = circuitName
+raceOutFile["year"] = futureRaces[0]["year"]
 
 predictedEntrants = []
 
 for did, cid in newDrivers.items():
     if circuit not in cleaner.drivers[did].trackpwr:
-        cleaner.drivers[did].trackpwr[circuit] = 0 #TODO maybe change defaults
+        cleaner.drivers[did].trackpwr[circuit] = 0
     if circuit not in cleaner.drivers[did].constructor.trackpwr:
-        cleaner.drivers[did].constructor.trackpwr[circuit] = 0 #TODO maybe change defaults
+        cleaner.drivers[did].constructor.trackpwr[circuit] = 0
     if circuit not in cleaner.drivers[did].constructor.engine.trackpwr:
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0 #TODO maybe change defaults
+        cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0
     
     entry = [
         cleaner.drivers[did].pwr,
@@ -157,26 +183,41 @@ linearRegResults = [np.dot(x, cleaner.theta) for x in predictedEntrants]
 driverResults = {} # {did: {position: amount}}
 orderedResults = [] # [(did, prediction) ...]
 for index, (did, cid) in enumerate(newDrivers.items()):
-    participant = {}
-    participant["pwr"] = linearRegResults[index]
-    participant["driv_var"] = cleaner.drivers[did].variance
-    participant["const_var"] = cleaner.drivers[did].constructor.variance
-    participant["eng_var"] = cleaner.drivers[did].constructor.engine.variance
-    newDrivers[did] = participant
-
     driverResults[int(did)] = {}
     orderedResults.append((did, linearRegResults[index]))
     
 orderedResults.sort(key = operator.itemgetter(1))
 outFile["order"] = [a for (a, b) in orderedResults]
+
+gaElos = []
+racePredictions = {}
+for gridPosition, did in enumerate(outFile["order"]):
+    gaElo = raceModel.getGaElo(did, gridPosition, circuit)
+    gaElos.append((did, gaElo))
+    racePredictions[did] = {}
+gaElos.sort(key=lambda x: x[1], reverse=True)
+raceOutFile["order"] = [a for (a, b) in gaElos]
     
 for i in range(10000):
-    scoreList = predictQualiResults(circuit, newDrivers)
+    scoreList = predictQualiResults(circuit, newDrivers, cleaner)
     for i, drivRes in enumerate(scoreList):
         if i not in driverResults[drivRes[0]]:
             driverResults[drivRes[0]][i] = 0
         driverResults[drivRes[0]][i] += 1
+    # Generate predictions for races
+    grid = [drivRes[0] for drivRes in scoreList]
+    modelCopy = copy.deepcopy(raceModel)
+    results = simulateRace(modelCopy, grid, circuit)
+    for pos, did in enumerate(results):
+        if pos not in racePredictions[did]:
+            racePredictions[did][pos] = 0
+        racePredictions[did][pos] += 1
+    
         
 outFile["predictions"] = driverResults
 with open(user_vars['predictions_output_folder'] + str(raceId) + '.json', 'w') as fp:
     json.dump(outFile, fp)
+
+raceOutFile["predictions"] = racePredictions
+with open('{}races/{}.json'.format(user_vars['predictions_output_folder'], str(raceId)), 'w') as fp:
+    json.dump(raceOutFile, fp)
