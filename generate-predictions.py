@@ -191,6 +191,7 @@ outFile["order"] = [a for (a, b) in orderedResults]
 
 gaElos = []
 racePredictions = {}
+raceModel.addNewTrack(circuit)
 for gridPosition, did in enumerate(outFile["order"]):
     gaElo = raceModel.getGaElo(did, gridPosition, circuit)
     gaElos.append((did, gaElo))

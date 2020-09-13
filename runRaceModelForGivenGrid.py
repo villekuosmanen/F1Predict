@@ -113,6 +113,7 @@ outFile["year"] = futureRaces[0]["year"]
 
 gaElos = []
 racePredictions = {}
+raceModel.addNewTrack(circuit)
 for gridPosition, did in enumerate(grid):
     gaElo = raceModel.getGaElo(did, gridPosition, circuit)
     gaElos.append((did, gaElo))
