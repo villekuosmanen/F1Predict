@@ -77,6 +77,10 @@ class EloRaceModel:
     def adjustCircuitAplha(self, alphaAdjustment, trackId):
         self.tracks[trackId] *= alphaAdjustment
 
+    def addNewTrack(self, circuitId):
+        if circuitId not in self.tracks:
+            self.tracks[circuitId] = 1
+          
 class EloConstructor:
     def __init__(self, name, engine):
         self.name = name
@@ -116,7 +120,7 @@ class EloRaceModelGenerator:
                 if raceId in self.raceResultsData and self.raceResultsData[raceId]:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
-                    self._addNewTrack(data.circuitId)
+                    self.model.addNewTrack(data.circuitId)
                     self._addNewTracksToEntities(data.trackId)
 
                     results = {}
@@ -156,7 +160,7 @@ class EloRaceModelGenerator:
                 if raceId in self.raceResultsData and self.raceResultsData[raceId]:
                     resultsForRace = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(resultsForRace, year)
-                    self._addNewTrack(data.circuitId)
+                    self.model.addNewTrack(data.circuitId)
 
                     results = {}
                     gaElos = {}
@@ -229,10 +233,6 @@ class EloRaceModelGenerator:
                     self.model.drivers[res["driverId"]].rating = ROOKIE_DRIVER_RATING
             if self.model.drivers[res["driverId"]].constructor is not self.model.constructors[res["constructorId"]]:
                 self.model.drivers[res["driverId"]].constructor = self.model.constructors[res["constructorId"]]
-
-    def _addNewTrack(self, circuitId):
-        if circuitId not in self.model.tracks:
-            self.model.tracks[circuitId] = 1
 
     def _calculateEloAdjustments(self, driverIds, gaElos, results):
         driverAdjustments = {}
