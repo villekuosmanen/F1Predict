@@ -1,13 +1,13 @@
 import random
+import pickle
 
 from python import *
 
-import pickle
 
 class F1RaceRandomModel:
     '''Predicts race results randomly'''
 
-    def __init__(self, raceSeasonsData, raceResultsData):
+    def __init__(self, seasonsData, raceResultsData):
         self.seasonsData = seasonsData
         self.raceResultsData = raceResultsData
 
@@ -25,17 +25,6 @@ class F1RaceRandomModel:
                     random.shuffle(driver_ids)
                     predictions.append(driver_ids)
         return predictions
-
-with open('data/raceSeasonsData.pickle', 'rb') as handle:
-    seasonsData = pickle.load(handle)
-    
-with open('data/raceResultsData.pickle', 'rb') as handle:
-    raceResultsData = pickle.load(handle)
-
-randomModel = F1RaceRandomModel(seasonsData, raceResultsData)
-randomPredictions = randomModel.constructPredictions()
-
-# print(randomPredictions)
 
 
 class F1RaceResultsGetter:
@@ -55,10 +44,11 @@ class F1RaceResultsGetter:
                 # A single race
                 if raceId in self.raceResultsData:
                     results = self.raceResultsData[raceId]
-                    res = [x['driverId'] for x in results]
-                    racesResults.append(res)
+                    if results:
+                        results.sort(key=lambda x: (x['position'] is None, x['position']))
+                        res = [x['driverId'] for x in results]
+                        racesResults.append(res)
         return racesResults
-
 
 
 # class F1RacePreviousModel:

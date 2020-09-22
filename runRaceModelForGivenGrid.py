@@ -113,6 +113,7 @@ outFile["year"] = futureRaces[0]["year"]
 
 gaElos = []
 racePredictions = {}
+raceModel.addNewTrack(circuit)
 for gridPosition, did in enumerate(grid):
     gaElo = raceModel.getGaElo(did, gridPosition, circuit)
     gaElos.append((did, gaElo))
@@ -130,5 +131,5 @@ for i in range(10000):
         racePredictions[did][pos] += 1
 outFile["predictions"] = racePredictions
 
-with open('{}races/{}.json'.format(user_vars['predictions_output_folder'], str(raceId)), 'w') as fp:
+with open('{}races/{}_afterQuali.json'.format(user_vars['predictions_output_folder'], str(raceId)), 'w') as fp:
     json.dump(outFile, fp)

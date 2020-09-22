@@ -1,0 +1,33 @@
+# A helper file for current driver IDs. May be out of date
+
+
+1:      Lewis Hamilton
+822:    Valtteri Bottas
+
+844:    Charles Leclerc
+20:     Sebastian Vettel
+
+830:    Max Verstappen
+848:    Alexander Albon
+
+832:    Carlos Sainz
+846:    Lando Norris
+
+815:    Sergio Pérez
+840:    Lance Stroll
+
+817:    Daniel Ricciardo
+839:    Esteban Ocon
+
+826:    Daniil Kvyat
+842:    Pierre Gasly
+
+8:      Kimi Räikkönen
+841:    Antonio Giovinazzi
+
+154:    Romain Grosjean
+825:    Kevin Magnussen
+
+847:    George Russell
+849:    Nicholas Latifi
+
