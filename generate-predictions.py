@@ -208,11 +208,15 @@ for i in range(10000):
     # Generate predictions for races
     grid = [drivRes[0] for drivRes in scoreList]
     modelCopy = copy.deepcopy(raceModel)
-    results = simulateRace(modelCopy, grid, circuit)
+    results, retiredDrivers = simulateRace(modelCopy, grid, circuit)
     for pos, did in enumerate(results):
         if pos not in racePredictions[did]:
             racePredictions[did][pos] = 0
         racePredictions[did][pos] += 1
+    for did in retiredDrivers:
+        if "ret" not in racePredictions[did]:
+            racePredictions[did]["ret"] = 0
+        racePredictions[did]["ret"] += 1
     
         
 outFile["predictions"] = driverResults

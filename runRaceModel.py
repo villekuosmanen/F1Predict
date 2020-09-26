@@ -123,11 +123,15 @@ outFile["order"] = [a for (a, b) in gaElos]
 
 for i in range(10000):
     modelCopy = copy.deepcopy(raceModel)
-    results = simulateRace(modelCopy, grid, circuit)
+    results, retiredDrivers = simulateRace(modelCopy, grid, circuit)
     for pos, did in enumerate(results):
         if pos not in racePredictions[did]:
             racePredictions[did][pos] = 0
         racePredictions[did][pos] += 1
+    for did in retiredDrivers:
+        if "ret" not in racePredictions[did]:
+            racePredictions[did]["ret"] = 0
+        racePredictions[did]["ret"] += 1
 outFile["predictions"] = racePredictions
 
 with open('{}races/{}.json'.format(user_vars['predictions_output_folder'], str(raceId)), 'w') as fp:
