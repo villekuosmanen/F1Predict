@@ -7,6 +7,8 @@ GA_ELO_INTERCEPT_COEFFICIENT = 0
 K_FACTOR = 4
 RETIREMENT_PENALTY = -0.5
 FINISHING_BONUS = 0.1
+BASE_RETIREMENT_PROBABILITY = 0.05
+RETIREMENT_PROBABILITY_CHANGE_WEIGHT = 0.05
 ROOKIE_DRIVER_RATING = 1800
 
 DRIVER_WEIGHTING = 0.19
@@ -14,6 +16,12 @@ CONSTRUCTOR_WEIGHTING = 0.69
 ENGINE_WEIGHTING = 0.09
 TRACK_WEIGHTING = 0.03
 
+DRIVER_WEIGHTING = 0.2
+CONSTRUCTOR_WEIGHTING = 0.7
+ENGINE_WEIGHTING = 0.1
+
+from python.f1Models import Engine, Constructor
+from random import randint
 
 class EloDriver:
     def __init__(self, name, constructor):
@@ -34,6 +42,8 @@ class EloRaceModel:
         self.engines = engines
         self.tracks = tracks
 
+        self.tracksRetirementFactor = {}
+
     def getGaElo(self, driverId, gridPosition, trackId):
         gridAdjustment = self.tracks[trackId] * \
             self.getGridAdjustment(gridPosition)
@@ -52,6 +62,9 @@ class EloRaceModel:
             (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + \
             (self.drivers[driverId].trackRatings[trackId]*TRACK_WEIGHTING) + \
             gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+
+    def getBaseRetirementProbability(self, trackId):
+        return BASE_RETIREMENT_PROBABILITY
 
     def getGridAdjustment(self, gridPosition):
         return (9.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
@@ -78,7 +91,6 @@ class EloRaceModel:
         if circuitId not in self.tracks:
             self.tracks[circuitId] = 1
 
-
 class EloConstructor:
     def __init__(self, name, engine):
         self.name = name
@@ -92,7 +104,6 @@ class EloEngine:
         self.name = name
         self.trackRatings = {}
         self.rating = 2200  # Default rating
-
 
 class EloRaceModelGenerator:
     def __init__(self, seasonsData, raceResultsData, driversData, constructorsData, enginesData):
@@ -128,6 +139,54 @@ class EloRaceModelGenerator:
                             res["driverId"], data.circuitId)
                         results[res["driverId"]] = res["position"]
                     driverIds = [x["driverId"] for x in resultsForRace]
+
+                    eloAdjustments = ()
+                    eloAdjustmentsSum = 0
+                    setEloAdjustmentsSum = False
+                    for alphaAdjustment in range(-0.25, 0.26, 0.25):
+                        results = {}
+                        gaElos = {}
+                        for index, res in enumerate(resultsForRace):
+                            results[res["driverId"]] = res["position"]
+                            gaElos[res["driverId"]] = self.model.getGaEloWithTrackAlpha(res["driverId"], res["grid"], data.circuitId, alphaAdjustment)
+                        curEloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                        curEloAdjustmentsSum = 0
+                        for i in range(len(curEloAdjustments[0])):
+                            curEloAdjustmentsSum += curEloAdjustments[0][i]
+                        for i in range(len(curEloAdjustments[1])):
+                            curEloAdjustmentsSum += curEloAdjustments[1][i]
+                        for i in range(len(curEloAdjustments[2])):
+                            curEloAdjustmentsSum += curEloAdjustments[2][i]
+
+                        if curEloAdjustmentsSum < eloAdjustmentsSum or not setEloAdjustmentsSum:
+                            setEloAdjustmentsSum = True
+                            eloAdjustmentsSum = curEloAdjustmentsSum
+                            eloAdjustments = curEloAdjustments
+
+                    #for index, res in enumerate(resultsForRace):
+                      #  results[res["driverId"]] = res["position"]
+                      #  gaElos[res["driverId"]] = self.model.getGaElo(res["driverId"], res["grid"], data.circuitId)
+
+                    # For each matchup, calculate expected score and real score. Put results to special data structure
+                  #  driverIds = [x["driverId"] for x in resultsForRace]
+                    #eloAdjustments = self._calculateEloAdjustments(driverIds, gaElos, results)
+                    retirementCount = 0
+                    for driverId in driverIds:
+                        if results[driverId] is None:
+                            self.model.adjustEloRating(driverId, RETIREMENT_PENALTY)
+                            retirementCount += 1
+                        self.model.adjustEloRating(driverId, eloAdjustments[driverId] + FINISHING_BONUS)
+
+                    # Adjust the retirement factor for this track
+                    retirementFrac = retirementCount / driverIds
+                    if self.model.tracksRetirementFactor[data.circuitId] == None:
+                        self.model.tracksRetirementFactor[data.cirCuitId] = retirementFrac
+                    else:
+                        oldValue = self.model.tracksRetirementFactor[data.circuitId]
+                        self.model.tracksRetirementFactor[data.circuitId] += (retirementFrac - oldValue) * RETIREMENT_PROBABILITY_CHANGE_WEIGHT
+                        
+                    # TODO Adjust circuit ALPHA
+
                     eloAdjustments, alphaAdjustment = self._calculateTrackAlphaAdjustmentAndBestEloAdjustments(
                         driverIds, resultsForRace, data.circuitId)
 
@@ -182,6 +241,15 @@ class EloRaceModelGenerator:
 
                     # After predictions have been generated, we can do the alpha adjustment
                     driverIds = [x["driverId"] for x in resultsForRace]
+
+                    # Some drivers may retire without finishing the race,
+                    retirementPercentage = self.model.getRetirementProbability(data.circuitId) * 100
+                    for driverId in driverIds:
+                        retirementRoll = randint(1, 100)
+                        if retirementRoll <= 5:
+                            # This driver has retired
+                            results[driverId] = None
+
                     eloAdjustments, alphaAdjustment = self._calculateTrackAlphaAdjustmentAndBestEloAdjustments(
                         driverIds, resultsForRace, data.circuitId)
 
@@ -193,10 +261,14 @@ class EloRaceModelGenerator:
                             driverId, eloAdjustments[0][driverId] + FINISHING_BONUS, data.circuitId)
 
                     for constructor in eloAdjustments[1]:
-                        self.model.adjustEloRatingConstructor(
-                            constructor, eloAdjustments[1][constructor])
+                        self.model.adjustEloRatingConstructor(constructor, eloAdjustments[1][constructor] + FINISHING_BONUS)
 
                     for engine in eloAdjustments[2]:
+                        self.model.adjustEloRatingConstructor(engine, eloAdjustments[2][engine] + FINISHING_BONUS)
+                    # TODO Adjust circuit ALPHA
+
+                        self.model.adjustEloRatingConstructor(
+                            constructor, eloAdjustments[1][constructor])
                         self.model.adjustEloRatingConstructor(
                             engine, eloAdjustments[2][engine])
 
