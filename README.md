@@ -36,5 +36,10 @@ If you're interested in contributing to the project, feel free to open an issue 
 ### Qualifying model
 - Ville Kuosmanen
 
+### Race model
+- Ville Kuosmanen
+- Raiyan Chowdhury
+- Philip Searcy
+
 ### Special thanks
 - [Ergast F1 API](https://ergast.com/mrd/)
