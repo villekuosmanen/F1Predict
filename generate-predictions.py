@@ -98,43 +98,44 @@ with open('out/engine_variances.pickle', 'wb+') as out:
 with open('out/trained_cleaner.pickle', 'wb+') as out:
     pickle.dump(cleaner, out, protocol=pickle.HIGHEST_PROTOCOL)
 
-newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
-newDrivers = {int(did): cid for did, cid in newDrivers.items()}
-
 print("Generating race model...")
 generator = EloRaceModelGenerator(seasonsData, raceResultsData, driversData, constructorsData, enginesData)
-predictions = generator.generateModel()
-predictions = generator.generatePredictions()
+generator.generateModel()
 raceModel = generator.getModel()
 
 outFile = {} # The object where we write output
 raceOutFile = {}
 
-driversToWrite = {}
+# Overwrite models based on newDrivers.json
+newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
+newDrivers = {int(did): cid for did, cid in newDrivers.items()}
 for did, cid in newDrivers.items():
-    driversToWrite[int(did)] = {}
-    if int(did) == -1:  # Cases when driver doesn't exist in data
+    if int(did) < 0:  # Cases when driver doesn't exist in data
         driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
         cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
         raceModel.drivers[int(did)] = EloDriver("__PLACEHOLDER__", raceModel.constructors[int(cid)])
         raceModel.drivers[int(did)].rating = ROOKIE_DRIVER_RATING
-    else:
-        driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     if not cid == "":
         cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
         raceModel.drivers[int(did)].constructor = raceModel.constructors[int(cid)]
+
+# Write driver details to outFile
+driversToWrite = {}
+for did in newDrivers.keys():
+    driversToWrite[int(did)] = {}
+    driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
     driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
     driversToWrite[int(did)]["color"] = getColor(cleaner.drivers[int(did)].constructor.name)
 outFile["drivers"] = driversToWrite
 raceOutFile["drivers"] = driversToWrite
 
+# Write race details to outFile
 raceId = -1
 with open('data/futureRaces.json', 'r') as handle:
     futureRaces = json.load(handle)
     circuit = futureRaces[0]["circuitId"]
     circuitName = futureRaces[0]["name"]
     raceId = futureRaces[0]["raceId"]
-    #print(seasonsData)
     
 # Edit index file
 with open(user_vars['predictions_output_folder'] + 'index.json', 'r+') as handle:

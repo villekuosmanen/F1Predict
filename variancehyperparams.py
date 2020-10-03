@@ -1,3 +1,5 @@
+# DEPRECATED
+
 from python import *
 
 import pickle

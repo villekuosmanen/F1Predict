@@ -1,138 +1,86 @@
-import pickle
 import json
 import copy
 
+from python.common import file_operations
 from python.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
 from python.race_model.raceMonteCarlo import simulateRace
+from python.race_model import common as race_common
 
 ROOKIE_DRIVER_RATING = 1800
-
-def getColor(constructor):
-    return {
-        "Mercedes": "#00D2BE",
-        "Ferrari": "#C00000",
-        "Red Bull": "#0600EF",
-        "Racing Point": "#F596C8",
-        "Williams": "#0082FA",
-        "Renault": "#FFF500",
-        "AlphaTauri": "#C8C8C8",
-        "Haas F1 Team": "#787878",
-        "McLaren": "#FF8700",
-        "Alfa Romeo": "#960000"
-    }.get(constructor, "#000000")
-
-#Read user variables:
-user_vars = {}
-with open("user_variables.txt") as f:
-    for line in f:
-        key, value = line.partition("=")[::2]
-        user_vars[key.rstrip()] = value.rstrip()
-
-with open('data/raceSeasonsData.pickle', 'rb') as handle:
-    seasonsData = pickle.load(handle)
-    
-with open('data/raceResultsData.pickle', 'rb') as handle:
-    raceResultsData = pickle.load(handle)
-    
-with open('data/driversData.pickle', 'rb') as handle:
-    driversData = pickle.load(handle)
-    
-with open('data/constructorsData.pickle', 'rb') as handle:
-    constructorsData = pickle.load(handle)
-    
-with open('data/enginesData.pickle', 'rb') as handle:
-    enginesData = pickle.load(handle)
-
-generator = EloRaceModelGenerator(seasonsData, raceResultsData, driversData, constructorsData, enginesData)
-predictions = generator.generateModel()
-predictions = generator.generatePredictions()
-raceModel = generator.getModel()
-
-print("Model done")
-
-# for driver in raceModel.drivers.values():
-#     print(driver)
-#     print("{}: {}".format(driver.name, driver.rating))
-
-# for constructor in raceModel.constructors.values():
-#     print("Constructor {}: {}".format(constructor.name, constructor.rating))
-
-# print()
-
-# for engine in raceModel.engines.values():
-#     print("Engine {}: {}".format(engine.name, engine.rating))
-
-# for trackId, alpha in raceModel.tracks.items():
-#     print("{}: {}".format(trackId, alpha))
-# print("Predictions:")
-# for pred in predictions[-5:]:
-#     for driverId in pred:
-#         print(raceModel.drivers[driverId].name)
-#     print("\n")
+USER_VARS = file_operations.getUserVariables("user_variables.txt")
 
 
+def generateModel():
+    seasonsData, raceResultsData, driversData, constructorsData, enginesData = race_common.loadData()
+    generator = EloRaceModelGenerator(
+        seasonsData, raceResultsData, driversData, constructorsData, enginesData)
+    generator.generateModel()
+    raceModel = generator.getModel()
+    print("Model done")
+    return raceModel
+
+
+def overwriteRaceModelWithNewDrivers(raceModel):
+    newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
+    newDrivers = {int(did): cid for did, cid in newDrivers.items()}
+    for did, cid in newDrivers.items():
+        if did < 0:  # Cases when driver doesn't exist in data
+            raceModel.drivers[did] = EloDriver(
+                "__PLACEHOLDER__", raceModel.constructors[int(cid)])
+            raceModel.drivers[did].rating = ROOKIE_DRIVER_RATING
+        if not cid == "":
+            # Data in newDrivers.json overwrites database
+            raceModel.drivers[did].constructor = raceModel.constructors[int(
+                cid)]
+
+
+def calculateGaElos(raceModel, grid, circuit):
+    gaElos = []
+    for gridPosition, did in enumerate(grid):
+        gaElo = raceModel.getGaElo(did, gridPosition, circuit)
+        gaElos.append((did, gaElo))
+    return gaElos
+
+
+def generatePercentualPredictions(raceModel, grid, circuit):
+    racePredictions = {did: {} for did in grid}
+    for i in range(10000):
+        modelCopy = copy.deepcopy(raceModel)
+        results, retiredDrivers = simulateRace(modelCopy, grid, circuit)
+        for pos, did in enumerate(results):
+            if pos not in racePredictions[did]:
+                racePredictions[did][pos] = 0
+            racePredictions[did][pos] += 1
+        for did in retiredDrivers:
+            if "ret" not in racePredictions[did]:
+                racePredictions[did]["ret"] = 0
+            racePredictions[did]["ret"] += 1
+    return racePredictions
+
+
+raceModel = generateModel()
+overwriteRaceModelWithNewDrivers(raceModel)
 
 grid = json.load(open('data/grid.json'))
+circuit, circuitName, raceId, year = file_operations.readNextRaceDetails(
+    'data/futureRaces.json')
 
-outFile = {} # The object where we write output
-
-newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
-newDrivers = {int(did): cid for did, cid in newDrivers.items()}
-for did, cid in newDrivers.items():
-    if int(did) == -1:  # Cases when driver doesn't exist in data
-        raceModel.drivers[int(did)] = EloDriver("__PLACEHOLDER__", raceModel.constructors[int(cid)])
-        raceModel.drivers[int(did)].rating = ROOKIE_DRIVER_RATING
-    if not cid == "":
-        raceModel.drivers[int(did)].constructor = raceModel.constructors[int(cid)]   # Data in newDrivers.json overwrites database
-
-driversToWrite = {}
-for did in grid:
-    driversToWrite[int(did)] = {}
-    driversToWrite[int(did)]["name"] = raceModel.drivers[int(did)].name
-    driversToWrite[int(did)]["constructor"] = raceModel.drivers[int(did)].constructor.name
-    driversToWrite[int(did)]["color"] = getColor(raceModel.drivers[int(did)].constructor.name)
-outFile["drivers"] = driversToWrite
-
-raceId = -1
-with open('data/futureRaces.json', 'r') as handle:
-    futureRaces = json.load(handle)
-    circuit = futureRaces[0]["circuitId"]
-    circuitName = futureRaces[0]["name"]
-    raceId = futureRaces[0]["raceId"]
-
-# Edit index file
-with open('{}races/index.json'.format(user_vars['predictions_output_folder']), 'r+') as handle:
-    data = json.load(handle)
-    data[str(futureRaces[0]["year"])][str(raceId)] = circuitName
-    handle.seek(0)        # <--- should reset file position to the beginning.
-    json.dump(data, handle, indent=4)
-    handle.truncate()
-
+outFile = {}  # The object where we write output
 outFile["name"] = circuitName
-outFile["year"] = futureRaces[0]["year"]
+outFile["year"] = year
+outFile["drivers"] = race_common.getDriverDetailsForOutFile(raceModel, grid)
 
-gaElos = []
-racePredictions = {}
-for gridPosition, did in enumerate(grid):
-    gaElo = raceModel.getGaElo(did, gridPosition, circuit)
-    gaElos.append((did, gaElo))
-    racePredictions[did] = {}
-
+raceModel.addNewTrack(circuit)
+gaElos = calculateGaElos(raceModel, grid, circuit)
 gaElos.sort(key=lambda x: x[1], reverse=True)
 outFile["order"] = [a for (a, b) in gaElos]
 
-for i in range(10000):
-    modelCopy = copy.deepcopy(raceModel)
-    results, retiredDrivers = simulateRace(modelCopy, grid, circuit)
-    for pos, did in enumerate(results):
-        if pos not in racePredictions[did]:
-            racePredictions[did][pos] = 0
-        racePredictions[did][pos] += 1
-    for did in retiredDrivers:
-        if "ret" not in racePredictions[did]:
-            racePredictions[did]["ret"] = 0
-        racePredictions[did]["ret"] += 1
-outFile["predictions"] = racePredictions
+outFile["predictions"] = generatePercentualPredictions(
+    raceModel, grid, circuit)
 
-with open('{}races/{}.json'.format(user_vars['predictions_output_folder'], str(raceId)), 'w') as fp:
-    json.dump(outFile, fp)
+# Publish predictions
+indexFileName = '{}races/index.json'.format(USER_VARS['predictions_output_folder'])
+file_operations.editIndexFile(indexFileName, year, raceId, circuitName)
+
+predictionsFileName = '{}races/{}_afterQuali.json'.format(USER_VARS['predictions_output_folder'], str(raceId))
+file_operations.publishPredictions(predictionsFileName, outFile)

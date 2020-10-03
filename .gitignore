@@ -9,4 +9,5 @@ out
 *.pickle
 config.py
 .ipynb_checkpoints
+.idea
 user_variables.txt
