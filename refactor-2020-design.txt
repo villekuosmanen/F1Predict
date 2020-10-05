@@ -1,0 +1,20 @@
+Major refactor (2020) design:
+
+Folder structure:
+
+data
+notebooks
+out
+scripts
+src
+    common
+    quali
+    race
+        EloDriver
+        EloConstructor
+        EloEngine
+        EloRaceModel
+        EloRaceModelGenerator
+        RaceMonteCarlo
+
+NOTE: most important scripts should still exist at root level!
