@@ -1,13 +1,11 @@
-#import statements
-
-#This non-descript folder contains all the standalone python modules
-from python import *
-
 import pymysql
 import pymysql.cursors
 import pandas as pd
 import numpy as np
 import pickle
+
+from python.common import file_operations
+from python import *
 
 #Create data classes
 #Year, Season
@@ -21,18 +19,13 @@ constructorsData = {}
 #EngineId, name
 enginesData = {}
 
-#Read user variables:
-user_vars = {}
-with open("user_variables.txt") as f:
-    for line in f:
-        key, value = line.partition("=")[::2]
-        user_vars[key.rstrip()] = value.rstrip()
+USER_VARS = file_operations.getUserVariables("user_variables.txt")
 
 #Set up a database connection:
 connection = pymysql.connect(host='localhost',
-                             user=user_vars['db_username'],
-                             password=user_vars['db_password'],
-                             db=user_vars['db_database'],
+                             user=USER_VARS['db_username'],
+                             password=USER_VARS['db_password'],
+                             db=USER_VARS['db_database'],
                              charset='utf8',
                              cursorclass=pymysql.cursors.DictCursor)
 

@@ -60,6 +60,6 @@ with open('out/const_variances.pickle', 'wb+') as out:
 with open('out/engine_variances.pickle', 'wb+') as out:
     pickle.dump(model.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 
-# Save model (if needed): TODO FIX
+# Save model
 with open('out/trained_quali_model.pickle', 'wb+') as out:
     pickle.dump(model, out, protocol=pickle.HIGHEST_PROTOCOL)

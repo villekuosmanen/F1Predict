@@ -182,22 +182,19 @@ def getEngineData(enginesData):
     for row in df.itertuples():
         #The index value is 0: meaning 1=id, 2=name
         enginesData[row[1]] = row[2]
-    #print(enginesData)
 
 def addEngineToConstructor(seasonsData):
     """Constructs a table that shows what engine each constructor used in a given year"""
     df = pd.read_csv('data/ConstructorEngines.csv')
     for row in df.itertuples():
-        if row[1] != 2018:
-            #The index value is 0: meaning 1=year, 2=teamId, 3=engineId
-            seasonsData[row[1]].addConstructorEngine(row[2], row[3])
+        #The index value is 0: meaning 1=year, 2=teamId, 3=engineId
+        seasonsData[row[1]].addConstructorEngine(row[2], row[3])
 
 def getTeamChangeData(seasonsData):
     """Constructs a table that shows when a team changed its name and ID, therefore tying the two together"""
     df = pd.read_csv('data/TeamChanges.csv')
     for row in df.itertuples():
-        if row[1] != 2018:
-            #The index value is 0: meaning 1=year, 2=newId, 3=oldId
-            seasonsData[row[1]].addTeamChange(row[2], row[3])
+        #The index value is 0: meaning 1=year, 2=newId, 3=oldId
+        seasonsData[row[1]].addTeamChange(row[2], row[3])
 
 
