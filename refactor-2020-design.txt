@@ -9,12 +9,33 @@ scripts
 src
     common
     quali
+        LinearModel
+        DataProcessor
+        Facade
+        MonteCarlo
     race
-        EloDriver
-        EloConstructor
-        EloEngine
         EloRaceModel
         EloRaceModelGenerator
-        RaceMonteCarlo
+        MonteCarlo
 
 NOTE: most important scripts should still exist at root level!
+
+Quali model:
+
+Compose into several classes:
+
+Quali model: contains the mathematical operations that define a model
+    - Only this object is required to generate predictions for a new GP
+Quali data processor: abstract helper class
+    - Contains method for actually running the model generator, returns all kinds of analytics. Called by facades below
+Facades:
+    - Each its own class, each can return the model (aka race model generator)
+    - Model Generator: just creates and returns the model
+    - Dataset Generator: generates dataset of entries, errors and results
+    - Predictions Generator: generates list of predictions
+
+This way, logic can be encapsulated
+
+Separate creating an optimal model from generating predictions
+    - Optional model generator is its own script, included in main workflow
+    - Save function saves the data processor only!

@@ -2,8 +2,10 @@ import operator
 import pickle
 import numpy as np
 import json
+import copy
 
-from python import *
+from python.quali.QualiDataProcessor import QualiDataProcessor
+from python.quali.monteCarlo import predictQualiResults
 from python.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
 from python.race_model.raceMonteCarlo import simulateRace
 
@@ -65,38 +67,43 @@ with open('data/constructorsData.pickle', 'rb') as handle:
 with open('data/enginesData.pickle', 'rb') as handle:
     enginesData = pickle.load(handle)
 
-cleaner = F1DataCleaner(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
+processor = QualiDataProcessor(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
 
 # Run gradient descent
 alpha = 0.18
 stop = 0.016
-entries, errors, results = cleaner.constructDataset()
+processor.processDataset()
+model = processor.getModel()
+entries, errors, results = processor.getDataset()
 grad = gradient(entries, errors)
 
 i = 0
 while np.linalg.norm(grad) > stop and i < 40:
     # Move in the direction of the gradient
     # N.B. this is point-wise multiplication, not a dot product
-    cleaner.theta = cleaner.theta - grad*alpha
+    model.theta = model.theta - grad*alpha
     mae = np.array([abs(x) for x in errors]).mean()
     print(mae)
-    entries, errors, results = cleaner.constructDataset()
+
+    processor.processDataset()
+    entries, errors, results = processor.getDataset()
     grad = gradient(entries, errors)
     i += 1
 
 print("Gradient descent finished. MAE="+str(mae))
-print(cleaner.theta)
+model = processor.getModel()
+print(model.theta)
 
 with open('out/driver_variances.pickle', 'wb+') as out:
-    pickle.dump(cleaner.driver_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(model.driver_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 with open('out/const_variances.pickle', 'wb+') as out:
-    pickle.dump(cleaner.const_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(model.const_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 with open('out/engine_variances.pickle', 'wb+') as out:
-    pickle.dump(cleaner.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(model.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 
-# Save model (if needed):
-with open('out/trained_cleaner.pickle', 'wb+') as out:
-    pickle.dump(cleaner, out, protocol=pickle.HIGHEST_PROTOCOL)
+# Save model (if needed): TODO FIX
+# with open('out/trained_cleaner.pickle', 'wb+') as out:
+#     pickle.dump(cleaner, out, protocol=pickle.HIGHEST_PROTOCOL)
 
 print("Generating race model...")
 generator = EloRaceModelGenerator(seasonsData, raceResultsData, driversData, constructorsData, enginesData)
@@ -112,20 +119,20 @@ newDrivers = {int(did): cid for did, cid in newDrivers.items()}
 for did, cid in newDrivers.items():
     if int(did) < 0:  # Cases when driver doesn't exist in data
         driversToWrite[int(did)]["name"] = "__PLACEHOLDER__"
-        cleaner.addNewDriver(int(did), "__PLACEHOLDER__", cid)
+        model.addNewDriver(int(did), "__PLACEHOLDER__", cid)
         raceModel.drivers[int(did)] = EloDriver("__PLACEHOLDER__", raceModel.constructors[int(cid)])
         raceModel.drivers[int(did)].rating = ROOKIE_DRIVER_RATING
     if not cid == "":
-        cleaner.drivers[int(did)].constructor = cleaner.constructors[int(cid)]   # Data in newDrivers.json overwrites database
+        model.drivers[int(did)].constructor = model.constructors[int(cid)]   # Data in newDrivers.json overwrites database
         raceModel.drivers[int(did)].constructor = raceModel.constructors[int(cid)]
 
 # Write driver details to outFile
 driversToWrite = {}
 for did in newDrivers.keys():
     driversToWrite[int(did)] = {}
-    driversToWrite[int(did)]["name"] = cleaner.drivers[int(did)].name
-    driversToWrite[int(did)]["constructor"] = cleaner.drivers[int(did)].constructor.name
-    driversToWrite[int(did)]["color"] = getColor(cleaner.drivers[int(did)].constructor.name)
+    driversToWrite[int(did)]["name"] = model.drivers[int(did)].name
+    driversToWrite[int(did)]["constructor"] = model.drivers[int(did)].constructor.name
+    driversToWrite[int(did)]["color"] = getColor(model.drivers[int(did)].constructor.name)
 outFile["drivers"] = driversToWrite
 raceOutFile["drivers"] = driversToWrite
 
@@ -161,25 +168,25 @@ raceOutFile["year"] = futureRaces[0]["year"]
 predictedEntrants = []
 
 for did, cid in newDrivers.items():
-    if circuit not in cleaner.drivers[did].trackpwr:
-        cleaner.drivers[did].trackpwr[circuit] = 0
-    if circuit not in cleaner.drivers[did].constructor.trackpwr:
-        cleaner.drivers[did].constructor.trackpwr[circuit] = 0
-    if circuit not in cleaner.drivers[did].constructor.engine.trackpwr:
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit] = 0
+    if circuit not in model.drivers[did].trackpwr:
+        model.drivers[did].trackpwr[circuit] = 0
+    if circuit not in model.drivers[did].constructor.trackpwr:
+        model.drivers[did].constructor.trackpwr[circuit] = 0
+    if circuit not in model.drivers[did].constructor.engine.trackpwr:
+        model.drivers[did].constructor.engine.trackpwr[circuit] = 0
     
     entry = [
-        cleaner.drivers[did].pwr,
-        cleaner.drivers[did].constructor.pwr, 
-        cleaner.drivers[did].constructor.engine.pwr,
-        cleaner.drivers[did].trackpwr[circuit],
-        cleaner.drivers[did].constructor.trackpwr[circuit],
-        cleaner.drivers[did].constructor.engine.trackpwr[circuit],
+        model.drivers[did].pwr,
+        model.drivers[did].constructor.pwr, 
+        model.drivers[did].constructor.engine.pwr,
+        model.drivers[did].trackpwr[circuit],
+        model.drivers[did].constructor.trackpwr[circuit],
+        model.drivers[did].constructor.engine.trackpwr[circuit],
         1
     ]
     predictedEntrants.append(entry)
 
-linearRegResults = [np.dot(x, cleaner.theta) for x in predictedEntrants]
+linearRegResults = [np.dot(x, model.theta) for x in predictedEntrants]
 
 driverResults = {} # {did: {position: amount}}
 orderedResults = [] # [(did, prediction) ...]
@@ -201,7 +208,7 @@ gaElos.sort(key=lambda x: x[1], reverse=True)
 raceOutFile["order"] = [a for (a, b) in gaElos]
     
 for i in range(10000):
-    scoreList = predictQualiResults(circuit, newDrivers, cleaner)
+    scoreList = predictQualiResults(circuit, newDrivers, model)
     for i, drivRes in enumerate(scoreList):
         if i not in driverResults[drivRes[0]]:
             driverResults[drivRes[0]][i] = 0
