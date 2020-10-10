@@ -2,11 +2,11 @@ import copy
 import random
 import numpy as np
 
-#Participants: key-value mapping of driver id and power score
-def predictQualiResults(circuitId, participants, model):
-    editableParticipants = copy.deepcopy(participants)
+#driverIDs: key-value mapping of driver id and power score
+def predictQualiResults(circuitId, driverIDs, model):
+    editableDriverIDs = copy.deepcopy(driverIDs)
     finalScores = []
-    scores = runQualifying(circuitId, editableParticipants, model)
+    scores = runQualifying(circuitId, editableDriverIDs, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
@@ -20,33 +20,33 @@ def predictQualiResults(circuitId, participants, model):
     else:
         return scoreList
     for (did, score) in tempList:
-        del editableParticipants[int(did)]
+        del editableDriverIDs[int(did)]
     finalScores = tempList + finalScores
 
     #Q2
-    scores = runQualifying(circuitId, editableParticipants, model)
+    scores = runQualifying(circuitId, editableDriverIDs, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
     tempList = scoreList[10:]
     for (did, score) in tempList:
-        del editableParticipants[int(did)]
+        del editableDriverIDs[int(did)]
     finalScores = tempList + finalScores
 
     #Q3
-    scores = runQualifying(circuitId, editableParticipants, model)
+    scores = runQualifying(circuitId, editableDriverIDs, model)
     #Sort scores:
     scoreList = list(scores.items())
     scoreList.sort(key=lambda x: x[1])
     finalScores = scoreList + finalScores
 
-    return finalScores
+    return [x[0] for x in finalScores]
 
-def runQualifying(circuitId, participants, model):
+def runQualifying(circuitId, driverIDs, model):
     scores = {}
     constructorRands = {}
     engineRands = {}
-    for did in participants.keys():
+    for did in driverIDs.keys():
         did = int(did)
 
         if model.drivers[did].constructor in constructorRands:

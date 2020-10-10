@@ -1,3 +1,5 @@
+
+
 class QualiLinearModel:
 
     def __init__(self, k_rookie_pwr, k_rookie_variance):
@@ -18,3 +20,11 @@ class QualiLinearModel:
         self.drivers[did] = Driver(name, self.constructors[cid])
         self.drivers[did].pwr = self.k_rookie_pwr
         self.drivers[did].variance = self.k_rookie_variance
+
+    def addNewCircuit(self, driverID, circuitId):
+        if circuitId not in self.drivers[driverID].trackpwr:
+            self.drivers[driverID].trackpwr[circuitId] = 0
+        if circuitId not in self.drivers[driverID].constructor.trackpwr:
+            self.drivers[driverID].constructor.trackpwr[circuitId] = 0
+        if circuitId not in self.drivers[driverID].constructor.engine.trackpwr:
+            self.drivers[driverID].constructor.engine.trackpwr[circuitId] = 0

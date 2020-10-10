@@ -5,7 +5,6 @@ from python.common import file_operations
 from python.race_model.raceMonteCarlo import simulateRace
 from python.race_model import utils as race_utils
 
-ROOKIE_DRIVER_RATING = 1800
 USER_VARS = file_operations.getUserVariables("user_variables.txt")
 
 

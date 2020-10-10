@@ -10,6 +10,7 @@ from python.f1Models import Engine
 from python.f1Models import Constructor
 from python.f1Models import Driver
 
+
 class QualiDataProcessor:
 
     def __init__(self, seasonsData, qualiResultsData, driversData, constructorsData, enginesData):
@@ -21,7 +22,8 @@ class QualiDataProcessor:
 
         self._initialiseConstants()
 
-        self.model = QualiLinearModel(self.k_rookie_pwr, self.k_rookie_variance)
+        self.model = QualiLinearModel(
+            self.k_rookie_pwr, self.k_rookie_variance)
         self.predictions = None
         self.entries = None
         self.errors = None
@@ -79,8 +81,7 @@ class QualiDataProcessor:
 
                     prediction = []
                     for index, (driverId, constId, time) in enumerate(qresults):
-                        self._addNewCircuitsToEntities(
-                            driverId, data.circuitId)
+                        self.model.addNewCircuit(driverId, data.circuitId)
                         entry = self._buildEntry(driverId, data.circuitId)
                         self.entries.append(entry)
                         self.results.append(scores[index])
@@ -119,24 +120,17 @@ class QualiDataProcessor:
     # Throws an exception if called before processing a dataset
     def getPredictions(self):
         if self.predictions == None:
-            raise AssertionError("Predictions not generated yet! Call <processDataset()> before calling me.")
+            raise AssertionError(
+                "Predictions not generated yet! Call <processDataset()> before calling me.")
         return self.predictions
 
     # Returns the entries, errors and results from the last processing
     # Throws an exception if called before processing a dataset
     def getDataset(self):
         if self.entries == None:
-            raise AssertionError("Dataset not generated yet! Call <processDataset()> before calling me.")
+            raise AssertionError(
+                "Dataset not generated yet! Call <processDataset()> before calling me.")
         return np.array(self.entries), np.array(self.errors), np.array(self.results)
-
-
-    def _addNewCircuitsToEntities(self, driverId, circuitId):
-        if circuitId not in self.model.drivers[driverId].trackpwr:
-            self.model.drivers[driverId].trackpwr[circuitId] = 0
-        if circuitId not in self.model.drivers[driverId].constructor.trackpwr:
-            self.model.drivers[driverId].constructor.trackpwr[circuitId] = 0
-        if circuitId not in self.model.drivers[driverId].constructor.engine.trackpwr:
-            self.model.drivers[driverId].constructor.engine.trackpwr[circuitId] = 0
 
     def _buildEntry(self, driverId, circuitId):
         entry = [
