@@ -1,4 +1,5 @@
-# DEPRECATED
+# DEPRECATED, DO NOT USE
+# This file will be updated in the future
 
 from python import *
 

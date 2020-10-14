@@ -2,8 +2,8 @@ import json
 import operator
 import numpy as np
 
-def overwriteQualiModelWithNewDrivers(qualiModel):
-    newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
+def overwriteQualiModelWithNewDrivers(qualiModel, filename):
+    newDrivers = json.load(open(filename))["drivers"]
     newDrivers = {int(did): cid for did, cid in newDrivers.items()}
     for did, cid in newDrivers.items():
         if did < 0:  # Cases when driver doesn't exist in data

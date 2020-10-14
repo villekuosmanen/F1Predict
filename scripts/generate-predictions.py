@@ -2,12 +2,12 @@ import pickle
 import json
 import copy
 
-from python.common import common
-from python.common import file_operations
-from python.quali import utils as quali_utils
-from python.quali.monteCarlo import predictQualiResults
-from python.race_model import utils as race_utils
-from python.race_model.raceMonteCarlo import simulateRace
+from f1predict.common import common
+from f1predict.common import file_operations
+from f1predict.quali import utils as quali_utils
+from f1predict.quali.monteCarlo import predictQualiResults
+from f1predict.race_model import utils as race_utils
+from f1predict.race_model.raceMonteCarlo import simulateRace
 
 USER_VARS = file_operations.getUserVariables("user_variables.txt")
 
@@ -37,7 +37,7 @@ def generatePercentualPredictions(qualiModel, raceModel, driverIds, circuit):
 
 with open('out/trained_quali_model.pickle', 'rb') as handle:
     qualiModel = pickle.load(handle)
-quali_utils.overwriteQualiModelWithNewDrivers(qualiModel)
+quali_utils.overwriteQualiModelWithNewDrivers(qualiModel, 'data/newDrivers.json')
 
 raceModel = race_utils.generateModel()
 race_utils.overwriteRaceModelWithNewDrivers(raceModel)

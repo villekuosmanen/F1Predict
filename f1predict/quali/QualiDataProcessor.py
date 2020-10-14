@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 from statistics import mean
 
-from python.quali.QualiLinearModel import QualiLinearModel
-from python.f1Data import Season
-from python.f1Data import RaceData
-from python.f1Models import Engine
-from python.f1Models import Constructor
-from python.f1Models import Driver
+from f1predict.quali.QualiLinearModel import QualiLinearModel
+from f1predict.common.Season import Season
+from f1predict.common.RaceData import RaceData
+from f1predict.quali.f1Models import Engine
+from f1predict.quali.f1Models import Constructor
+from f1predict.quali.f1Models import Driver
 
 
 class QualiDataProcessor:

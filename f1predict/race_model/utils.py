@@ -1,8 +1,8 @@
 import pickle
 import json
 
-from python.common import common
-from python.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
+from f1predict.common import common
+from f1predict.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
 
 
 def loadData():

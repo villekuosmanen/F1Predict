@@ -1,12 +1,14 @@
 venv
 __pycache__
 out
+dist
 .DS_Store
 .vscode
 *.sql
 *.xml
 *.ods
 *.pickle
+*.egg-info
 config.py
 .ipynb_checkpoints
 .idea

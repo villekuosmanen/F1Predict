@@ -4,8 +4,9 @@ import pandas as pd
 import numpy as np
 import pickle
 
-from python.common import file_operations
-from python import *
+from f1predict.common import dataclean
+from f1predict.common import file_operations
+from f1predict.race_model import dataclean as race_dataclean
 
 # Get season and race data
 raceSeasonsData = {}
@@ -26,9 +27,9 @@ connection = pymysql.connect(host='localhost',
 try:
     with connection.cursor() as cursor:
         for year in range(2003, 2021):
-            addRaceSeasonData(cursor, raceSeasonsData, raceResultsData, year)
-        addEngineToConstructor(raceSeasonsData)
-        getTeamChangeData(raceSeasonsData)        
+            race_dataclean.addRaceSeasonData(cursor, raceSeasonsData, raceResultsData, year)
+        dataclean.addEngineToConstructor(raceSeasonsData)
+        dataclean.getTeamChangeData(raceSeasonsData)        
 finally:
     connection.close()
 

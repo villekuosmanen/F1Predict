@@ -1,10 +1,9 @@
-from . import Season
-from . import RaceData
-
 import pymysql
 import pymysql.cursors
-import pandas as pd
 import json
+
+from f1predict.common.Season import Season
+from f1predict.common.RaceData import RaceData
 
 def compareQualiTimes(q1, q2, q3):
     """Returns the best time of the three"""
@@ -90,36 +89,6 @@ def addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, year):
     seasonsData[year] = s
     return no_mistakes
 
-def addRaceSeasonData(cursor, seasonsData, raceResultsData, year):
-    """Adds a Season Data object to the given map of seasons"""
-    s = Season()
-
-    sql = "SELECT `raceId`, `round`, `circuitId`, `name` FROM `races` WHERE `year`=%s"
-    cursor.execute(sql, year)
-    result = cursor.fetchall()
-    
-    for x in result:
-        circuitId = x.get('circuitId')
-        roundNo = x.get('round')
-
-        raceData = RaceData(circuitId, roundNo)
-        s.addRace(x.get('raceId'), raceData)
-        addRaceResults(cursor, raceResultsData, x.get('raceId'))
-
-
-    seasonsData[year] = s
-
-def addRaceResults(cursor, raceResultsData, raceId):
-    """Adds race results data"""
-    sql = "SELECT `driverId`, `constructorId`, `position`, `grid` FROM `results` WHERE `raceId`=%s"
-    cursor.execute(sql, raceId)
-    result = cursor.fetchall()
-
-    if result:
-        result.sort(key=lambda result: (result['position'] is None, result['position']))
-
-    raceResultsData[raceId] = result
-
 def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
     """Adds quali results from a race. Each result has a separate object for each driver's performance
     
@@ -159,42 +128,3 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
         qualiResultsData[raceId] = qs
         return True, mistakes
     return False, mistakes
-
-def getDriversData(cursor, driversData):
-    """Gathers the wanted data from all drivers"""
-    sql = "SELECT `driverId`, `forename`, `surname` FROM `drivers`"
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    for x in result:
-        driversData[x.get('driverId')] = x.get('forename') + " " + x.get('surname')
-
-def getConstructorData(cursor, constructorsData):
-    """Gathers the wanted data from all constructors"""
-    sql = "SELECT `constructorId`, `name` FROM `constructors`"
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    for x in result:
-        constructorsData[x.get('constructorId')] = x.get('name')
-
-def getEngineData(enginesData):
-    """Gathers the wanted data from all engines"""
-    df = pd.read_csv('data/Engines.csv', names=['engineId', 'name'])
-    for row in df.itertuples():
-        #The index value is 0: meaning 1=id, 2=name
-        enginesData[row[1]] = row[2]
-
-def addEngineToConstructor(seasonsData):
-    """Constructs a table that shows what engine each constructor used in a given year"""
-    df = pd.read_csv('data/ConstructorEngines.csv')
-    for row in df.itertuples():
-        #The index value is 0: meaning 1=year, 2=teamId, 3=engineId
-        seasonsData[row[1]].addConstructorEngine(row[2], row[3])
-
-def getTeamChangeData(seasonsData):
-    """Constructs a table that shows when a team changed its name and ID, therefore tying the two together"""
-    df = pd.read_csv('data/TeamChanges.csv')
-    for row in df.itertuples():
-        #The index value is 0: meaning 1=year, 2=newId, 3=oldId
-        seasonsData[row[1]].addTeamChange(row[2], row[3])
-
-

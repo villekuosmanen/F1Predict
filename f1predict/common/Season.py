@@ -11,8 +11,3 @@ class Season:
         self.constructorEngines[constructorId] = engineId
     def addTeamChange(self, new, old):
         self.teamChanges[new] = old
-
-class RaceData:
-    def __init__(self, circuitId, round):
-        self.circuitId = circuitId
-        self.round = round

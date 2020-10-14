@@ -1,8 +1,6 @@
 import random
 import pickle
 
-from python import *
-
 
 class F1RaceRandomModel:
     '''Predicts race results randomly'''

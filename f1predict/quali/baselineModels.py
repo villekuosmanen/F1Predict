@@ -1,10 +1,10 @@
 import random
 
-from .f1Data import Season
-from .f1Data import RaceData
-from .f1Models import Engine
-from .f1Models import Constructor
-from .f1Models import Driver
+from f1predict.common.Season import Season
+from f1predict.common.RaceData import RaceData
+from f1predict.quali.f1Models import Engine
+from f1predict.quali.f1Models import Constructor
+from f1predict.quali.f1Models import Driver
 
 class F1ResultsGetter:
     '''Returns results of qualifyings without times'''

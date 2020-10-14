@@ -1,8 +1,6 @@
 import pickle
 import random
 
-from python import *
-
 class F1RaceFromQualiModel:
     '''Predicts race results to be equal to qualifying results'''
 

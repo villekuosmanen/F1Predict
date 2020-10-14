@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 
-from python.quali.QualiDataProcessor import QualiDataProcessor
+from f1predict.quali.QualiDataProcessor import QualiDataProcessor
 
 def gradient(x, err):
     grad = -(1.0/len(x)) * err @ x
@@ -61,5 +61,8 @@ with open('out/engine_variances.pickle', 'wb+') as out:
     pickle.dump(model.engine_variances, out, protocol=pickle.HIGHEST_PROTOCOL)
 
 # Save model
+with open('out/trained_quali_processor.pickle', 'wb+') as out:
+    pickle.dump(processor, out, protocol=pickle.HIGHEST_PROTOCOL)
+
 with open('out/trained_quali_model.pickle', 'wb+') as out:
     pickle.dump(model, out, protocol=pickle.HIGHEST_PROTOCOL)
