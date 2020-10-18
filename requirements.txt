@@ -6,6 +6,7 @@ cycler==0.10.0
 decorator==4.3.0
 defusedxml==0.5.0
 entrypoints==0.2.3
+-e git+git@ssh.github.com:villekuosmanen/F1Predict.git@44541366b86a9f20357539b97346b4320131f919#egg=F1Predict
 ipykernel==5.1.0
 ipyparallel==6.2.3
 ipython==7.2.0
@@ -13,7 +14,8 @@ ipython-genutils==0.2.0
 ipywidgets==7.4.2
 isort==4.3.21
 jedi==0.13.2
-Jinja2==2.10
+Jinja2==2.11.2
+joblib==0.15.1
 jsonschema==2.6.0
 jupyter==1.0.0
 jupyter-client==5.2.4
@@ -30,7 +32,7 @@ mistune==0.8.4
 nbconvert==5.4.0
 nbformat==4.4.0
 notebook==5.7.8
-numpy==1.16.0
+numpy==1.15.4
 pandas==0.23.4
 pandocfilters==1.4.2
 parso==0.3.1
@@ -49,9 +51,11 @@ pytz==2018.7
 pyzmq==17.1.2
 qtconsole==4.4.3
 rope==0.11.0
-scikit-learn==0.20.2
+scikit-surprise==1.1.0
+scipy==1.2.0
 Send2Trash==1.5.0
 six==1.12.0
+surprise==0.1
 terminado==0.8.1
 testpath==0.4.2
 tornado==5.1.1
