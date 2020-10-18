@@ -2,7 +2,8 @@ import pickle
 import json
 
 from f1predict.common import common
-from f1predict.race_model.EloRaceModel import EloRaceModelGenerator, EloRaceModel, EloDriver
+from f1predict.race.EloModel import EloDriver
+from f1predict.race.DataProcessor import DataProcessor
 
 
 def loadData():
@@ -32,10 +33,10 @@ def getDriverDetailsForOutFile(raceModel, driverIDs):
 
 def generateModel():
     seasonsData, raceResultsData, driversData, constructorsData, enginesData = loadData()
-    generator = EloRaceModelGenerator(
+    processor = DataProcessor(
         seasonsData, raceResultsData, driversData, constructorsData, enginesData)
-    generator.generateModel()
-    raceModel = generator.getModel()
+    processor.processDataset()
+    raceModel = processor.getModel()
     return raceModel
 
 def overwriteRaceModelWithNewDrivers(raceModel):

@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 
-from f1predict.quali.QualiDataProcessor import QualiDataProcessor
+from f1predict.quali.DataProcessor import DataProcessor
 
 def gradient(x, err):
     grad = -(1.0/len(x)) * err @ x
@@ -26,7 +26,7 @@ with open('data/constructorsData.pickle', 'rb') as handle:
 with open('data/enginesData.pickle', 'rb') as handle:
     enginesData = pickle.load(handle)
 
-processor = QualiDataProcessor(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
+processor = DataProcessor(seasonsData, qualiResultsData, driversData, constructorsData, enginesData)
 
 # Run gradient descent
 alpha = 0.18

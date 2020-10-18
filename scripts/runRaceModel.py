@@ -2,8 +2,8 @@ import json
 import copy
 
 from f1predict.common import file_operations
-from f1predict.race_model.raceMonteCarlo import simulateRace
-from f1predict.race_model import utils as race_utils
+from f1predict.race.raceMonteCarlo import simulateRace
+from f1predict.race import utils as race_utils
 
 USER_VARS = file_operations.getUserVariables("user_variables.txt")
 

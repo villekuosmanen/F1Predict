@@ -6,8 +6,8 @@ from f1predict.common import common
 from f1predict.common import file_operations
 from f1predict.quali import utils as quali_utils
 from f1predict.quali.monteCarlo import predictQualiResults
-from f1predict.race_model import utils as race_utils
-from f1predict.race_model.raceMonteCarlo import simulateRace
+from f1predict.race import utils as race_utils
+from f1predict.race.raceMonteCarlo import simulateRace
 
 USER_VARS = file_operations.getUserVariables("user_variables.txt")
 

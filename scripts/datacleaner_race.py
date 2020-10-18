@@ -6,7 +6,7 @@ import pickle
 
 from f1predict.common import dataclean
 from f1predict.common import file_operations
-from f1predict.race_model import dataclean as race_dataclean
+from f1predict.race import dataclean as race_dataclean
 
 # Get season and race data
 raceSeasonsData = {}

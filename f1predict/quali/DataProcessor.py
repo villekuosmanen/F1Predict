@@ -3,15 +3,10 @@ import pandas as pd
 import numpy as np
 from statistics import mean
 
-from f1predict.quali.QualiLinearModel import QualiLinearModel
-from f1predict.common.Season import Season
-from f1predict.common.RaceData import RaceData
-from f1predict.quali.f1Models import Engine
-from f1predict.quali.f1Models import Constructor
-from f1predict.quali.f1Models import Driver
+from f1predict.quali.LinearModel import LinearModel, Engine, Constructor, Driver
 
 
-class QualiDataProcessor:
+class DataProcessor:
 
     def __init__(self, seasonsData, qualiResultsData, driversData, constructorsData, enginesData):
         self.seasonsData = seasonsData
@@ -22,7 +17,7 @@ class QualiDataProcessor:
 
         self._initialiseConstants()
 
-        self.model = QualiLinearModel(
+        self.model = LinearModel(
             self.k_rookie_pwr, self.k_rookie_variance)
         self.predictions = None
         self.entries = None
@@ -61,12 +56,13 @@ class QualiDataProcessor:
         # Deviation variables
         globaldev = [None] * 20
         trackdev = {}
-        for year, season in self.seasonsData.items():  # Read every season:
+
+        for year, season in self.seasonsData.items():
             self._updateModelsForYear(season)
             racesAsList = list(season.races.items())
             racesAsList.sort(key=lambda x: x[1].round)
+            
             for raceId, data in racesAsList:
-                # A single race
                 if raceId in self.qualiResultsData:
                     qresults = self.qualiResultsData[raceId]
                     self._addNewDriversAndConstructors(qresults, year)
@@ -86,14 +82,15 @@ class QualiDataProcessor:
                         self.entries.append(entry)
                         self.results.append(scores[index])
 
+                        # Calculate predicted result
                         y_hat = np.dot(entry, self.model.theta)
                         prediction.append((driverId, y_hat))
 
-                        # Calculate error
+                        # Calculate prediction error
                         err = scores[index] - y_hat
-                        # Append error to total errors
                         self.errors.append(err)
 
+                        # Calculate model adjustments
                         pwr_changes_driver[driverId] = err
                         if constId not in pwr_changes_constructor:
                             pwr_changes_constructor[constId] = []
@@ -107,7 +104,7 @@ class QualiDataProcessor:
                     random.shuffle(prediction)
                     prediction.sort(key=lambda x: x[1])
                     self.predictions.append([x[0] for x in prediction])
-                    # Set old model values to be new values
+                    # Adjust models
                     self._updateModels(
                         pwr_changes_driver, pwr_changes_constructor, pwr_changes_engine, data.circuitId)
             self._updateModelsAtEndOfYear(season)

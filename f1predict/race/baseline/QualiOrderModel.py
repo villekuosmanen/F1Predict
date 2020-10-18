@@ -1,7 +1,7 @@
-import pickle
 import random
 
-class F1RaceFromQualiModel:
+
+class QualiOrderModel:
     '''Predicts race results to be equal to qualifying results'''
 
     def __init__(self, seasonsData, raceResultsData, qualiResultsData):
