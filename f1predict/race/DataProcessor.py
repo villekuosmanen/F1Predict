@@ -1,11 +1,13 @@
 import statistics
 
+import f1predict.race.utils as utils
 from f1predict.race.EloModel import EloModel, EloDriver, EloConstructor, EloEngine
 
 RETIREMENT_PENALTY = -0.5
 FINISHING_BONUS = 0.1
 BASE_RETIREMENT_PROBABILITY = 0.1
-RETIREMENT_PROBABILITY_CHANGE_WEIGHT = 0.33
+RETIREMENT_PROBABILITY_CHANGE_TRACK = 0.33
+RETIREMENT_PROBABILITY_CHANGE_DRIVER = 0.10
 ROOKIE_DRIVER_RATING = 1800
 
 class DataProcessor:
@@ -39,7 +41,7 @@ class DataProcessor:
                         gaElos[res["driverId"]] = self.model.getGaElo(
                             res["driverId"], res["grid"], data.circuitId)
                         if res["position"] is None:
-                            retired.append(res["driverId"])
+                            retired.append((res["driverId"], res["status"]))
                         else:
                             classified.append(res["driverId"])
 
@@ -49,20 +51,14 @@ class DataProcessor:
                     if sortedGaElos:    # TODO is this if-check necessary?
                         self.predictions.append([x[0] for x in sortedGaElos])
 
-                    # After predictions have been generated, we can do the alpha adjustment for the track
+                    # Adjust models based on race results
                     eloAdjustments, alphaAdjustment = self._calculateTrackAlphaAdjustmentAndBestEloAdjustments(
                         classified, results, data.circuitId)
                     self._adjustEloRatings(classified, retired, eloAdjustments, data.circuitId)
+                    self._adjustRetirementFactors(retired, classified, data.circuitId)
                     self.model.adjustCircuitAplha(
                         alphaAdjustment, data.circuitId)
 
-                    # Adjust retirement factors
-                    retirementFrac = len(retired) / (len(classified) + len(retired))
-                    if data.circuitId not in self.model.tracksRetirementFactor:
-                        self.model.tracksRetirementFactor[data.circuitId] = BASE_RETIREMENT_PROBABILITY
-                    oldValue = self.model.tracksRetirementFactor[data.circuitId]
-                    self.model.tracksRetirementFactor[data.circuitId] += (
-                        retirementFrac - oldValue) * RETIREMENT_PROBABILITY_CHANGE_WEIGHT
 
     # Returns the generated EloModel from the last processing, or an empty model if the function was not called yet
     def getModel(self):
@@ -195,7 +191,7 @@ class DataProcessor:
         for driverId in classified:
             self.model.adjustEloRating(
                 driverId, eloAdjustments[0][driverId] + FINISHING_BONUS, circuitId)
-        for driverId in retired:
+        for (driverId, _) in retired:
             self.model.adjustEloRating(
                 driverId, RETIREMENT_PENALTY, circuitId)
 
@@ -206,3 +202,58 @@ class DataProcessor:
         for engine in eloAdjustments[2]:
             self.model.adjustEloRatingEngine(
                 engine, eloAdjustments[2][engine])
+
+    def _adjustRetirementFactors(self, retired, classified, circuitID):
+        const_retirements = {}
+        eng_retirements = {}
+        all_retirements = []
+        
+        # Process drivers who were classified in the race
+        for driverID in classified:
+            if self.model.drivers[driverID].constructor not in const_retirements:
+                const_retirements[self.model.drivers[driverID].constructor] = []
+            if self.model.drivers[driverID].constructor.engine not in eng_retirements:
+                eng_retirements[self.model.drivers[driverID].constructor.engine] = []
+
+            all_retirements.append(0)
+            self.model.drivers[driverID].retirementProbability *= 1-RETIREMENT_PROBABILITY_CHANGE_DRIVER
+            const_retirements[self.model.drivers[driverID].constructor].append(0)
+            eng_retirements[self.model.drivers[driverID].constructor.engine].append(0)
+
+        # Process drivers who retired from the race    
+        for (driverID, retirementReason) in retired:
+            if self.model.drivers[driverID].constructor not in const_retirements:
+                const_retirements[self.model.drivers[driverID].constructor] = []
+            if self.model.drivers[driverID].constructor.engine not in eng_retirements:
+                eng_retirements[self.model.drivers[driverID].constructor.engine] = []
+
+            all_retirements.append(1)
+            blame = utils.getRetirementBlame(retirementReason)
+            self.model.drivers[driverID].retirementProbability = (3 * blame[0] * RETIREMENT_PROBABILITY_CHANGE_DRIVER) + \
+                (1-RETIREMENT_PROBABILITY_CHANGE_DRIVER) * self.model.drivers[driverID].retirementProbability
+            const_retirements[self.model.drivers[driverID].constructor].append(blame[1])
+            eng_retirements[self.model.drivers[driverID].constructor.engine].append(blame[2])
+
+        # Adjust overall retirement factor    
+        self.model.overallRetirementProbability = statistics.mean(all_retirements) * \
+                RETIREMENT_PROBABILITY_CHANGE_DRIVER + (1-RETIREMENT_PROBABILITY_CHANGE_DRIVER) \
+                * self.model.overallRetirementProbability
+        
+        # Adjust track retirement factors
+        if circuitID not in self.model.tracksRetirementFactor:
+            self.model.tracksRetirementFactor[circuitID] = BASE_RETIREMENT_PROBABILITY
+        oldValue = self.model.tracksRetirementFactor[circuitID]
+        self.model.tracksRetirementFactor[circuitID] += (statistics.mean(all_retirements) -
+            oldValue) * RETIREMENT_PROBABILITY_CHANGE_TRACK
+        
+        # Adjust constructor factors
+        for constructor, blames in const_retirements.items():
+            newValue = statistics.mean(blames)
+            constructor.retirementProbability = (3 * newValue * RETIREMENT_PROBABILITY_CHANGE_DRIVER) + \
+                (1-RETIREMENT_PROBABILITY_CHANGE_DRIVER) * constructor.retirementProbability
+
+        # Adjust engine factors
+        for engine, blames in eng_retirements.items():
+            newValue = statistics.mean(blames)
+            engine.retirementProbability = (3 * newValue * RETIREMENT_PROBABILITY_CHANGE_DRIVER) + \
+                (1-RETIREMENT_PROBABILITY_CHANGE_DRIVER) * engine.retirementProbability

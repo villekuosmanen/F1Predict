@@ -33,7 +33,7 @@ def simulateRace(raceModel, grid, circuit):
 
         # Simulate retirement
         randCeck = random.random()
-        if randCeck < raceModel.getRetirementProbability(circuit):
+        if randCeck < raceModel.getRetirementProbability(circuit, did):
             retiredDrivers.append(did)
         else: 
             gaElos.append((did, gaElo))

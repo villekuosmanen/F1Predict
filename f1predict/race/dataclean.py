@@ -23,7 +23,8 @@ def addRaceSeasonData(cursor, seasonsData, raceResultsData, year):
 
 def addRaceResults(cursor, raceResultsData, raceId):
     """Adds race results data"""
-    sql = "SELECT `driverId`, `constructorId`, `position`, `grid` FROM `results` WHERE `raceId`=%s"
+    sql = "SELECT `driverId`, `constructorId`, `position`, `grid`, `status`.status as status \
+        FROM `results`, `status` WHERE `raceId`=%s AND `status`.statusId = `results`.statusId"
     cursor.execute(sql, raceId)
     result = cursor.fetchall()
 

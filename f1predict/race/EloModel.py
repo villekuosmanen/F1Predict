@@ -14,9 +14,10 @@ TRACK_WEIGHTING = 0.03
 class EloDriver:
     def __init__(self, name, constructor):
         self.name = name
-        self.trackRatings = {}
         self.constructor = constructor
         self.rating = 2200  # Default rating
+        self.trackRatings = {}
+        self.retirementProbability = BASE_RETIREMENT_PROBABILITY
 
     def changeConstructor(self, constructor):
         self.constructor = constructor
@@ -28,13 +29,15 @@ class EloConstructor:
         self.engine = engine
         self.rating = 2200  # Default rating
         self.trackRatings = {}
+        self.retirementProbability = BASE_RETIREMENT_PROBABILITY
 
 
 class EloEngine:
     def __init__(self, name):
         self.name = name
-        self.trackRatings = {}
         self.rating = 2200  # Default rating
+        self.trackRatings = {}
+        self.retirementProbability = BASE_RETIREMENT_PROBABILITY
 
 
 class EloModel:
@@ -44,6 +47,7 @@ class EloModel:
         self.engines = engines
         self.tracks = tracks
         self.tracksRetirementFactor = {}
+        self.overallRetirementProbability = BASE_RETIREMENT_PROBABILITY
 
     def getGaElo(self, driverId, gridPosition, trackId):
         gridAdjustment = self.tracks[trackId] * \
@@ -64,8 +68,12 @@ class EloModel:
             (self.drivers[driverId].trackRatings[trackId]*TRACK_WEIGHTING) + \
             gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
-    def getRetirementProbability(self, trackId):
-        return (BASE_RETIREMENT_PROBABILITY + self.tracksRetirementFactor[trackId]) / 2
+    def getRetirementProbability(self, trackId, driverID):
+        return (self.overallRetirementProbability + 
+            self.tracksRetirementFactor[trackId] + 
+            self.drivers[driverID].retirementProbability + 
+            self.drivers[driverID].constructor.retirementProbability + 
+            self.drivers[driverID].constructor.engine.retirementProbability) / 5
 
     def getGridAdjustment(self, gridPosition):
         return (9.5 - gridPosition) * GRID_ADJUSTMENT_COEFFICIENT
