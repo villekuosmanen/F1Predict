@@ -92,3 +92,5 @@ class EloModel:
     def addNewTrack(self, circuitId):
         if circuitId not in self.tracks:
             self.tracks[circuitId] = 1
+        if circuitId not in self.tracksRetirementFactor:
+            self.tracksRetirementFactor[circuitId] = BASE_RETIREMENT_PROBABILITY

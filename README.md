@@ -17,7 +17,8 @@ The instructions are as follows:
 - Create a file `user-variables.txt` inside F1Predict (see example below). Change the values of each field to match the values in your local database.
 - Create a new Python virtual environment and activate it. `python3 -m venv <environment name>`, and `. venv/bin/activate`
 - Run `pip install -r requirements.txt`.
-Run `sh dbUpdater.sh`. This adds most recent data to your local database and runs the program, generating predictions to the output folder specified in user-variables.txt
+    - This command also attempts to install the local F1Predict package from source control. I'm not sure if it will work correctly. If not, run the commands `python3 setup.py sdist bdist_wheel` and `pip install -e .` inside the `F1Predict` folder
+- Run `sh dbUpdater.sh`. This adds most recent data to your local database and runs the program, generating predictions to the output folder specified in user-variables.txt
 
 ### Example `user_variables.txt` file:
 db_username=username  
@@ -26,6 +27,14 @@ db_database=f1db
 predictions_output_folder=../F1PredictWeb/src/public/data/
 
 The keys (left side of equation) must remain constant, but the values (right-hand side) can be changed to values you prefer. Bu using the example output folder, the predictions are automatically saved to F1ProjectWeb's data folder (if the repositories share the same root folder).
+
+## Package structure
+
+The `f1predict` folder contains the models, and utility and common code for running them. It is structured in classes and runnable functions. This package is designed to be as self-contained as possible, and as such it needs to be locally installed in order to use the scripts and notebooks below.
+
+The `scripts` folder contains scripts, each corresponding to a particular workflow. The shell script `dbUpdater.sh` runs them to generate qualifying an (pre-quali) race predictions, as well as generating all models for most recent data. The script `runRaceModel.py` generates post-quali predictions for a particular grid.
+
+The `notebooks` folder contains Jupyter Notebooks, which are mainly used for evaluating the models, and investigating the data.
 
 ## How to contribute
 
