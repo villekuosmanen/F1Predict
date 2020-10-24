@@ -6,7 +6,6 @@ cycler==0.10.0
 decorator==4.3.0
 defusedxml==0.5.0
 entrypoints==0.2.3
--e git+git@ssh.github.com:villekuosmanen/F1Predict.git@44541366b86a9f20357539b97346b4320131f919#egg=F1Predict
 ipykernel==5.1.0
 ipyparallel==6.2.3
 ipython==7.2.0

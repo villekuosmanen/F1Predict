@@ -16,8 +16,8 @@ The instructions are as follows:
 - (Optional) Clone F1PredictWeb in the same parent folder as you cloned F1Predict.
 - Create a file `user-variables.txt` inside F1Predict (see example below). Change the values of each field to match the values in your local database.
 - Create a new Python virtual environment and activate it. `python3 -m venv <environment name>`, and `. venv/bin/activate`
-- Run `pip install -r requirements.txt`.
-    - This command also attempts to install the local F1Predict package from source control. I'm not sure if it will work correctly. If not, run the commands `python3 setup.py sdist bdist_wheel` and `pip install -e .` inside the `F1Predict` folder
+- Run `pip install -r requirements.txt` to install dependencies
+- Install the local f1predict package. To do this, first build the local package by running `python3 setup.py sdist bdist_wheel` and then install the built package with `pip install -e .`
 - Run `sh dbUpdater.sh`. This adds most recent data to your local database and runs the program, generating predictions to the output folder specified in user-variables.txt
 
 ### Example `user_variables.txt` file:

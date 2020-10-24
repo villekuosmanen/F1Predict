@@ -40,7 +40,7 @@ with open('out/trained_quali_model.pickle', 'rb') as handle:
 quali_utils.overwriteQualiModelWithNewDrivers(qualiModel, 'data/newDrivers.json')
 
 raceModel = race_utils.generateModel()
-race_utils.overwriteRaceModelWithNewDrivers(raceModel)
+race_utils.overwriteRaceModelWithNewDrivers(raceModel, 'data/newDrivers.json')
 
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 driverIDs = [int(did) for did, cid in newDrivers.items()]

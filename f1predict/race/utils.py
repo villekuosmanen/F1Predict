@@ -38,8 +38,8 @@ def generateModel():
     processor.processDataset()
     return processor.getModel()
 
-def overwriteRaceModelWithNewDrivers(raceModel):
-    newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
+def overwriteRaceModelWithNewDrivers(raceModel, filename):
+    newDrivers = json.load(open(filename))["drivers"]
     newDrivers = {int(did): cid for did, cid in newDrivers.items()}
     for did, cid in newDrivers.items():
         if did < 0:  # Cases when driver doesn't exist in data

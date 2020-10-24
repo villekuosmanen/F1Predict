@@ -25,10 +25,11 @@ def generatePercentualPredictions(raceModel, grid, circuit):
 
 
 raceModel = race_utils.generateModel()
-race_utils.overwriteRaceModelWithNewDrivers(raceModel)
+race_utils.overwriteRaceModelWithNewDrivers(raceModel, 'data/newDrivers.json')
 print("Model done")
 
-grid = json.load(open('data/grid.json'))
+gridFile = json.load(open('data/grid.json'))
+grid = [x["id"] for x in gridFile]
 circuit, circuitName, raceId, year = file_operations.readNextRaceDetails(
     'data/futureRaces.json')
 
