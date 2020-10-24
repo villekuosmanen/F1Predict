@@ -1,6 +1,7 @@
 import pickle
 import json
 import copy
+from progress.bar import ChargingBar
 
 from f1predict.common import common
 from f1predict.common import file_operations
@@ -14,6 +15,8 @@ USER_VARS = file_operations.getUserVariables("user_variables.txt")
 def generatePercentualPredictions(qualiModel, raceModel, driverIds, circuit):
     racePredictions = {did: {} for did in driverIds}
     qualiPredictions = {did: {} for did in driverIds}
+    bar = ChargingBar("Simulating", max=100)
+
     for i in range(10000):
         grid = predictQualiResults(circuit, {did: None for did in driverIds}, qualiModel)
         for pos, did in enumerate(grid):
@@ -32,16 +35,22 @@ def generatePercentualPredictions(qualiModel, raceModel, driverIds, circuit):
             if "ret" not in racePredictions[did]:
                 racePredictions[did]["ret"] = 0
             racePredictions[did]["ret"] += 1
+        if i % 99 == 0:
+            bar.next()
+            
+    bar.finish()
     return qualiPredictions, racePredictions
 
-
+print("STAGE 1: Reading a pre-trained quali model from file")
 with open('out/trained_quali_model.pickle', 'rb') as handle:
     qualiModel = pickle.load(handle)
 quali_utils.overwriteQualiModelWithNewDrivers(qualiModel, 'data/newDrivers.json')
 
+print("STAGE 2: Generating a race model")
 raceModel = race_utils.generateModel()
 race_utils.overwriteRaceModelWithNewDrivers(raceModel, 'data/newDrivers.json')
 
+print("STAGE 3: Reading local data")
 newDrivers = json.load(open('data/newDrivers.json'))["drivers"]
 driverIDs = [int(did) for did, cid in newDrivers.items()]
 circuit, circuitName, raceId, year = file_operations.readNextRaceDetails(
@@ -63,11 +72,13 @@ gaElos = race_utils.calculateGaElos(raceModel, predictedOrder, circuit)
 gaElos.sort(key=lambda x: x[1], reverse=True)
 raceOutFile["order"] = [a for (a, b) in gaElos]
 
+print("STAGE 4: Generating predictions (this may take a while)")
 qualiPredictions, racePredictions = generatePercentualPredictions(qualiModel, raceModel, driverIDs, circuit)
 
 outFile["predictions"] = qualiPredictions
 raceOutFile["predictions"] = racePredictions
 
+print("STAGE 4: Writing predictions to output files")
 # Publish predictions: edit index file
 qualiIndexFileName = '{}/index.json'.format(
     USER_VARS['predictions_output_folder'])

@@ -19,5 +19,5 @@ python3 scripts/datacleaner_quali.py
 python3 scripts/datacleaner_race.py
 
 # Run scripts that generate predictions
-python3 scripts/qualiModelTrainer.py
+python3 scripts/quali_model_trainer.py
 python3 scripts/generate-predictions.py
