@@ -45,7 +45,9 @@ outFile["name"] = circuitName
 outFile["year"] = year
 outFile["drivers"] = race_utils.getDriverDetailsForOutFile(raceModel, grid)
 
-raceModel.addNewTrack(circuit)
+raceModel.addNewCircuit(circuit)
+for did in grid:
+    raceModel.addNewCircuitToParticipant(did, circuit)
 gaElos = race_utils.calculateGaElos(raceModel, grid, circuit)
 gaElos.sort(key=lambda x: x[1], reverse=True)
 outFile["order"] = [a for (a, b) in gaElos]

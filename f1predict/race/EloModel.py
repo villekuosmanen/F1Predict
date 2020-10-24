@@ -1,14 +1,17 @@
 import math
 
-GRID_ADJUSTMENT_COEFFICIENT = 28
+GRID_ADJUSTMENT_COEFFICIENT = 22
 GA_ELO_INTERCEPT_COEFFICIENT = 0
 K_FACTOR = 4
+K_FACTOR_TRACK = 8
 BASE_RETIREMENT_PROBABILITY = 0.1
 
-DRIVER_WEIGHTING = 0.19
-CONSTRUCTOR_WEIGHTING = 0.74
-ENGINE_WEIGHTING = 0.4
-TRACK_WEIGHTING = 0.03
+FIRST_TRACK_RATING = 1820
+
+DRIVER_WEIGHTING = 0.12
+CONSTRUCTOR_WEIGHTING = 0.52
+ENGINE_WEIGHTING = 0.36
+TRACK_WEIGH_SHARE = 0.00    # NOTE: Does not improve performance, so it's turned off for now
 
 
 class EloDriver:
@@ -53,20 +56,31 @@ class EloModel:
         gridAdjustment = self.tracks[trackId] * \
             self.getGridAdjustment(gridPosition)
 
-        return (self.drivers[driverId].rating * DRIVER_WEIGHTING) + \
-            (self.drivers[driverId].constructor.rating * CONSTRUCTOR_WEIGHTING) + \
-            (self.drivers[driverId].constructor.engine.rating *
-             ENGINE_WEIGHTING) + gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+        return (self.getDriverRating(driverId, trackId) * DRIVER_WEIGHTING) + \
+            (self.getConstructorRating(driverId, trackId) * CONSTRUCTOR_WEIGHTING) + \
+            (self.getEngineRating(driverId, trackId) * ENGINE_WEIGHTING) + \
+            gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
 
     def getGaEloWithTrackAlpha(self, driverId, gridPosition, trackId, alphaAdjustment):
         gridAdjustment = (
             self.tracks[trackId] * alphaAdjustment) * self.getGridAdjustment(gridPosition)
 
-        return (self.drivers[driverId].rating)*DRIVER_WEIGHTING + \
-            (self.drivers[driverId].constructor.rating)*CONSTRUCTOR_WEIGHTING + \
-            (self.drivers[driverId].constructor.engine.rating)*ENGINE_WEIGHTING + \
-            (self.drivers[driverId].trackRatings[trackId]*TRACK_WEIGHTING) + \
+        return (self.getDriverRating(driverId, trackId) * DRIVER_WEIGHTING) + \
+            (self.getConstructorRating(driverId, trackId) * CONSTRUCTOR_WEIGHTING) + \
+            (self.getEngineRating(driverId, trackId) * ENGINE_WEIGHTING) + \
             gridAdjustment + GA_ELO_INTERCEPT_COEFFICIENT
+
+    def getDriverRating(self, driverId, trackId):
+        return self.drivers[driverId].rating * (1-TRACK_WEIGH_SHARE) + \
+            self.drivers[driverId].trackRatings[trackId] * TRACK_WEIGH_SHARE
+
+    def getConstructorRating(self, driverId, trackId):
+        return self.drivers[driverId].constructor.rating * (1-TRACK_WEIGH_SHARE) + \
+            self.drivers[driverId].constructor.trackRatings[trackId] * TRACK_WEIGH_SHARE
+
+    def getEngineRating(self, driverId, trackId):
+        return self.drivers[driverId].constructor.engine.rating * (1-TRACK_WEIGH_SHARE) + \
+            self.drivers[driverId].constructor.engine.trackRatings[trackId] * TRACK_WEIGH_SHARE
 
     def getRetirementProbability(self, trackId, driverID):
         return (self.overallRetirementProbability + 
@@ -86,19 +100,32 @@ class EloModel:
 
     def adjustEloRating(self, driverId, adjustment, trackId):
         self.drivers[driverId].rating += (adjustment * K_FACTOR)
-        self.drivers[driverId].trackRatings[trackId] += (adjustment * K_FACTOR)
+        self.drivers[driverId].trackRatings[trackId] += (adjustment * K_FACTOR_TRACK)
 
-    def adjustEloRatingConstructor(self, constructor, adjustment):
+    def adjustEloRatingConstructor(self, constructor, adjustment, trackId):
         constructor.rating += (adjustment * K_FACTOR)
+        constructor.trackRatings[trackId] += (adjustment * K_FACTOR_TRACK)
 
-    def adjustEloRatingEngine(self, engine, adjustment):
+    def adjustEloRatingEngine(self, engine, adjustment, trackId):
         engine.rating += (adjustment * K_FACTOR)
+        engine.trackRatings[trackId] += (adjustment * K_FACTOR_TRACK)
 
     def adjustCircuitAplha(self, alphaAdjustment, trackId):
         self.tracks[trackId] *= alphaAdjustment
 
-    def addNewTrack(self, circuitId):
+    def addNewCircuit(self, circuitId):
         if circuitId not in self.tracks:
             self.tracks[circuitId] = 1
         if circuitId not in self.tracksRetirementFactor:
             self.tracksRetirementFactor[circuitId] = BASE_RETIREMENT_PROBABILITY
+
+    def addNewCircuitToParticipant(self, driverId, trackId):
+        if trackId not in self.drivers[driverId].trackRatings:
+            # TODO maybe change defaults
+            self.drivers[driverId].trackRatings[trackId] = FIRST_TRACK_RATING
+        if trackId not in self.drivers[driverId].constructor.trackRatings:
+            # TODO maybe change defaults
+            self.drivers[driverId].constructor.trackRatings[trackId] = FIRST_TRACK_RATING
+        if trackId not in self.drivers[driverId].constructor.engine.trackRatings:
+            # TODO maybe change defaults
+            self.drivers[driverId].constructor.engine.trackRatings[trackId] = FIRST_TRACK_RATING

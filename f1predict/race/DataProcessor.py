@@ -1,6 +1,7 @@
 import statistics
 
 from f1predict.race.EloModel import EloModel, EloDriver, EloConstructor, EloEngine
+from f1predict.race.retirementBlame import getRetirementBlame
 
 RETIREMENT_PENALTY = -1.8
 FINISHING_BONUS = 0.1
@@ -30,13 +31,13 @@ class DataProcessor:
                 if raceId in self.raceResultsData and self.raceResultsData[raceId]:
                     results = self.raceResultsData[raceId]
                     self._addNewDriversAndConstructors(results, year)
-                    self.model.addNewTrack(data.circuitId)
+                    self.model.addNewCircuit(data.circuitId)
 
                     gaElos = {}
                     classified = []
                     retired = []
                     for index, res in enumerate(results):
-                        self._addNewTracksToEntities(res["driverId"], data.circuitId)
+                        self.model.addNewCircuitToParticipant(res["driverId"], data.circuitId)
                         gaElos[res["driverId"]] = self.model.getGaElo(
                             res["driverId"], res["grid"], data.circuitId)
                         if res["position"] is None:
@@ -96,17 +97,6 @@ class DataProcessor:
 
         # Regress all powers towards the mean
         # TODO
-
-    def _addNewTracksToEntities(self, driverId, trackId):
-        if trackId not in self.model.drivers[driverId].trackRatings:
-            # TODO maybe change defaults
-            self.model.drivers[driverId].trackRatings[trackId] = 2200
-        if trackId not in self.model.drivers[driverId].constructor.trackRatings:
-            # TODO maybe change defaults
-            self.model.drivers[driverId].constructor.trackRatings[trackId] = 2200
-        if trackId not in self.model.drivers[driverId].constructor.engine.trackRatings:
-            # TODO maybe change defaults
-            self.model.drivers[driverId].constructor.engine.trackRatings[trackId] = 2200
 
     def _addNewDriversAndConstructors(self, resultsForRace, year):
         for res in resultsForRace:
@@ -196,11 +186,11 @@ class DataProcessor:
 
         for constructor in eloAdjustments[1]:
             self.model.adjustEloRatingConstructor(
-                constructor, eloAdjustments[1][constructor])
+                constructor, eloAdjustments[1][constructor], circuitId)
 
         for engine in eloAdjustments[2]:
             self.model.adjustEloRatingEngine(
-                engine, eloAdjustments[2][engine])
+                engine, eloAdjustments[2][engine], circuitId)
 
     def _adjustRetirementFactors(self, retired, classified, circuitID):
         const_retirements = {}
@@ -256,84 +246,3 @@ class DataProcessor:
             newValue = statistics.mean(blames)
             engine.retirementProbability = (3 * newValue * RETIREMENT_PROBABILITY_CHANGE_DRIVER) + \
                 (1-RETIREMENT_PROBABILITY_CHANGE_DRIVER) * engine.retirementProbability
-
-def getRetirementBlame(status):
-    if status == "Collision":
-        return (1, 0, 0)
-    elif status == "Accident":
-        return (1, 0, 0)
-    elif status == "Engine":
-        return (0, 0, 1)
-    elif status == "Gearbox":
-        return (0, 1, 0)
-    elif status == "Hydraulics":
-        return (0, 1, 0)
-    elif status == "Brakes":
-        return (0, 1, 0)
-    elif status == "Spun off":
-        return (1, 0, 0)
-    elif status == "Suspension":
-        return (0, 1, 0)
-    elif status == "Electrical":
-        return (0, 0.5, 0.5)
-    elif status == "Power Unit":
-        return (0, 0, 1)
-    elif status == "Collision damage":
-        return (1, 0, 0)
-    elif status == "Wheel":
-        return (0, 1, 0)
-    elif status == "Transmission":
-        return (0, 1, 0)
-    elif status == "Mechanical":
-        return (0, 0.5, 0.5)
-    elif status == "Puncture":
-        return (0.667, 0.333, 0)
-    elif status == "Driveshaft":
-        return (0, 1, 0)
-    elif status == "Oil leak":
-        return (0, 0.5, 0.5)
-    elif status == "Tyre":
-        return (0, 1, 0)
-    elif status == "Fuel pressure":
-        return (0, 0.5, 0.5)
-    elif status == "Clutch":
-        return (0, 1, 0)
-    elif status == "Electronics":
-        return (0, 0.5, 0.5)
-    elif status == "Power loss":
-        return (0, 0, 1)
-    elif status == "Overheating":
-        return (0, 0.5, 0.5)
-    elif status == "Throttle":
-        return (0, 1, 0)
-    elif status == "Wheel nut":
-        return (0, 1, 0)
-    elif status == "Exhaust":
-        return (0, 1, 0)
-    elif status == "Steering":
-        return (0, 1, 0)
-    elif status == "Fuel system":
-        return (0, 0.5, 0.5)
-    elif status == "Water leak":
-        return (0, 1, 0)
-    elif status == "Battery":
-        return (0, 0, 1)
-    elif status == "ERS":
-        return (0, 0, 1)
-    elif status == "Water pressure":
-        return (0, 1, 0)
-    elif status == "Rear wing":
-        return (0.667, 0.333, 0)
-    elif status == "Vibrations":
-        return (0.667, 0.333, 0)
-    elif status == "Technical":
-        return (0, 0.5, 0.5)
-    elif status == "Oil pressure":
-        return (0, 0.5, 0.5)
-    elif status == "Pneumatics":
-        return (0, 1, 0)
-    elif status == "Turbo":
-        return (0, 0, 1)
-    elif status == "Front wing":
-        return (0.667, 0.333, 0)
-    return (0.334, 0.333, 0.333)

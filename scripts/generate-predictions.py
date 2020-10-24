@@ -62,12 +62,13 @@ outFile["year"] = year
 outFile["drivers"] = race_utils.getDriverDetailsForOutFile(qualiModel, driverIDs)
 raceOutFile = copy.deepcopy(outFile)  # The object where we write race output
 
+raceModel.addNewCircuit(circuit)
 for did in driverIDs:
     qualiModel.addNewCircuit(did, circuit)
+    raceModel.addNewCircuitToParticipant(did, circuit)
 predictedOrder = quali_utils.calculateOrder(qualiModel, driverIDs, circuit)
 outFile["order"] = predictedOrder
 
-raceModel.addNewTrack(circuit)
 gaElos = race_utils.calculateGaElos(raceModel, predictedOrder, circuit)
 gaElos.sort(key=lambda x: x[1], reverse=True)
 raceOutFile["order"] = [a for (a, b) in gaElos]
