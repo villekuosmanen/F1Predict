@@ -108,7 +108,7 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
             q2 = x.get('q2')
             q3 = x.get('q3')
             bestTime = compareQualiTimes(q1, q2, q3)
-            if (index < q3no and (q3 is None or not q3)) or (index < q2no and (q2 is None or not q2)):
+            if (index < q3no and (q3 is None or not q3)) or (index < q2no and (q2 is None or not q2)) or not q1:
                 #Driver didn't participate to a qualifying they got in. Can take several actions but now just ignore them
                 print("Race " + str(raceId) + ", place " + str(index + 1) + " failed to set a time")
                 mistakes += 1
@@ -119,7 +119,7 @@ def addQualiResults(cursor, qualiResultsData, q3no, q2no, raceId):
             if bestTime is not None:
                 #If is 'None', don't add to results at all!
                 #lastBestTime = slowerTime(lastBestTime, bestTime)
-                if bestTime < 1.08*fastestTimeOfAll:    #Using a 109% rule
+                if bestTime < 1.07*fastestTimeOfAll:    #Using a 107% rule
                     qs.append( (x.get('driverId'), x.get('constructorId'), bestTime) ) #A tuple
                 else:
                     mistakes += 1

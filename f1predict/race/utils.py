@@ -5,6 +5,7 @@ from f1predict.common import common
 from f1predict.race.EloModel import EloDriver
 from f1predict.race.DataProcessor import DataProcessor
 
+ROOKIE_DRIVER_RATING = 1820
 
 def loadData():
     with open('data/raceSeasonsData.pickle', 'rb') as handle:
