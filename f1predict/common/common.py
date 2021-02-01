@@ -11,3 +11,6 @@ def getColor(constructor):
         "McLaren": "#FF8700",
         "Alfa Romeo": "#960000"
     }.get(constructor, "#000000")
+
+def getCurrentYear():
+    return 2021

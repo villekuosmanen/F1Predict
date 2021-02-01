@@ -43,7 +43,7 @@ def overwriteRaceModelWithNewDrivers(raceModel, filename):
     newDrivers = json.load(open(filename))["drivers"]
     newDrivers = {int(did): cid for did, cid in newDrivers.items()}
     for did, cid in newDrivers.items():
-        if did < 0:  # Cases when driver doesn't exist in data
+        if did < 0 or did not in raceModel.drivers:  # Cases when driver doesn't exist in data
             raceModel.drivers[did] = EloDriver(
                 "__PLACEHOLDER__", raceModel.constructors[int(cid)])
             raceModel.drivers[did].rating = ROOKIE_DRIVER_RATING

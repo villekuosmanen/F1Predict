@@ -6,7 +6,7 @@ def overwriteQualiModelWithNewDrivers(qualiModel, filename):
     newDrivers = json.load(open(filename))["drivers"]
     newDrivers = {int(did): cid for did, cid in newDrivers.items()}
     for did, cid in newDrivers.items():
-        if did < 0:  # Cases when driver doesn't exist in data
+        if did < 0 or did not in qualiModel.drivers:  # Cases when driver doesn't exist in data
             qualiModel.addNewDriver(did, "__PLACEHOLDER__", cid)
         if not cid == "":
             # Data in newDrivers.json overwrites database

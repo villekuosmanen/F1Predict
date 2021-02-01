@@ -1,63 +1,55 @@
 [
     {
-        "name": "Lewis Hamilton",
-        "id": 1
+        "name": "Max Verstappen",
+        "id": 830
     },
     {
         "name": "Valtteri Bottas",
         "id": 822
     },
     {
-        "name": "Max Verstappen",
-        "id": 830
-    },
-    {
-        "name": "Alexander Albon",
-        "id": 848
-    },
-    {
-        "name": "Sergio Pérez",
-        "id": 815
-    },
-    {
-        "name": "Daniel Ricciardo",
-        "id": 817
-    },
-    {
-        "name": "Esteban Ocon",
-        "id": 839
-    },
-    {
-        "name": "Pierre Gasly",
-        "id": 842
+        "name": "Lewis Hamilton",
+        "id": 1
     },
     {
         "name": "Lando Norris",
         "id": 846
     },
     {
+        "name": "Alexander Albon",
+        "id": 848
+    },
+    {
+        "name": "Carlos Sainz",
+        "id": 832
+    },
+    {
         "name": "Daniil Kvyat",
         "id": 826
-    },
-    {
-        "name": "Sebastian Vettel",
-        "id": 20
-    },
-    {
-        "name": "Charles Leclerc",
-        "id": 844
     },
     {
         "name": "Lance Stroll",
         "id": 840
     },
     {
-        "name": "George Russell",
-        "id": 847
+        "name": "Pierre Gasly",
+        "id": 842
     },
     {
-        "name": "Carlos Sainz",
-        "id": 832
+        "name": "Esteban Ocon",
+        "id": 839
+    },
+    {
+        "name": "Daniel Ricciardo",
+        "id": 817
+    },
+    {
+        "name": "Charles Leclerc",
+        "id": 844
+    },
+    {
+        "name": "Sebastian Vettel",
+        "id": 20
     },
     {
         "name": "Antonio Giovinazzi",
@@ -66,17 +58,25 @@
     {
         "name": "Kimi Räikkönen",
         "id": 8
+    },    
+    {
+        "name": "George Russell",
+        "id": 847
     },
     {
-        "name": "Kevin Magnussen",
-        "id": 825
-    },
-    {
-        "name": "Romain Grosjean",
-        "id": 154
+        "name": "Pietro Fittipaldi",
+        "id": 850
     },
     {
         "name": "Nicholas Latifi",
         "id": 849
+    },
+    {
+        "name": "Sergio Pérez",
+        "id": 815
+    },
+    {
+        "name": "Kevin Magnussen",
+        "id": 825
     }
 ]

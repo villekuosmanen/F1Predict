@@ -6,6 +6,7 @@ import pickle
 
 from f1predict.common import dataclean
 from f1predict.common import file_operations
+from f1predict.common import common
 from f1predict.quali import dataclean as quali_dataclean
 
 #Create data classes
@@ -29,7 +30,7 @@ print(qualiChanges)
 try:
     with connection.cursor() as cursor:
         total_mistakes = 0
-        for x in range(2003, 2021):
+        for x in range(2003, common.getCurrentYear() + 1):
             no_mistakes = quali_dataclean.addSeason(cursor, seasonsData, qualiResultsData, qualiChanges, x)
             total_mistakes += no_mistakes
         dataclean.addEngineToConstructor(seasonsData)

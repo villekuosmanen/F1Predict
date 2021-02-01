@@ -6,6 +6,7 @@ import pickle
 
 from f1predict.common import dataclean
 from f1predict.common import file_operations
+from f1predict.common import common
 from f1predict.race import dataclean as race_dataclean
 
 # Get season and race data
@@ -26,7 +27,7 @@ connection = pymysql.connect(host='localhost',
 
 try:
     with connection.cursor() as cursor:
-        for year in range(2003, 2021):
+        for year in range(2003, common.getCurrentYear() + 1):
             race_dataclean.addRaceSeasonData(cursor, raceSeasonsData, raceResultsData, year)
         dataclean.addEngineToConstructor(raceSeasonsData)
         dataclean.getTeamChangeData(raceSeasonsData)        
