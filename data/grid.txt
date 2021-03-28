@@ -4,29 +4,29 @@
 1:      Lewis Hamilton
 822:    Valtteri Bottas
 
-844:    Charles Leclerc
-20:     Sebastian Vettel
-
 830:    Max Verstappen
-848:    Alexander Albon
-
-832:    Carlos Sainz
-846:    Lando Norris
-
 815:    Sergio Pérez
-840:    Lance Stroll
+
+844:    Charles Leclerc
+832:    Carlos Sainz
 
 817:    Daniel Ricciardo
-839:    Esteban Ocon
+846:    Lando Norris
 
-826:    Daniil Kvyat
+852:    Yuki Tsunoda
 842:    Pierre Gasly
+
+20:     Sebastian Vettel
+840:    Lance Stroll
+
+4:      Fernando Alonso
+839:    Esteban Ocon
 
 8:      Kimi Räikkönen
 841:    Antonio Giovinazzi
 
-154:    Romain Grosjean
-825:    Kevin Magnussen
+853:    Nikita Mazepin
+854:    Mick Schumacher
 
 847:    George Russell
 849:    Nicholas Latifi
