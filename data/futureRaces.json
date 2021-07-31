@@ -1,23 +1,5 @@
 [
     {
-        "raceId": 1058,
-        "name": "Styrian Grand Prix",
-        "circuitId": 70,
-        "year": 2021
-    },
-    {
-        "raceId": 1060,
-        "name": "Austrian Grand Prix",
-        "circuitId": 70,
-        "year": 2021
-    },
-    {
-        "raceId": 1061,
-        "name": "British Grand Prix",
-        "circuitId": 9,
-        "year": 2021
-    },
-    {
         "raceId": 1062,
         "name": "Hungarian Grand Prix",
         "circuitId": 11,
@@ -49,8 +31,8 @@
     },
     {
         "raceId": 1067,
-        "name": "Singapore Grand Prix",
-        "circuitId": 15,
+        "name": "Turkish Grand Prix",
+        "circuitId": 5,
         "year": 2021
     },
     {
